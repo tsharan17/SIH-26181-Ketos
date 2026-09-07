@@ -1,10 +1,10 @@
 'use client';
 import React from 'react';
-import { usePraanaStore } from '@/store/usePraanaStore';
+import { usemyhealthStore } from '@/store/usemyhealthStore';
 import { Activity, Wind, HeartPulse, Droplets, MapPin, Watch, Smartphone, Thermometer } from 'lucide-react';
 
 export default function LiveWearablePage() {
-  const store = usePraanaStore();
+  const store = usemyhealthStore();
   const isUltra = store.derived.ultraSaverActive;
 
   return (
@@ -63,11 +63,11 @@ export default function LiveWearablePage() {
           <div className="space-y-4">
             <div>
               <div className="text-xs font-semibold text-slate-400 mb-1">Ambient Temp</div>
-              <div className="font-mono text-3xl font-black">{store.sensors.mlx90614.ambientTemp.toFixed(1)} <span className="text-sm font-sans text-slate-500">°C</span></div>
+              <div className="font-mono text-3xl font-black">{store.sensors.mlx90614.ambientTemp.toFixed(1)} <span className="text-sm font-sans text-slate-500">Â°C</span></div>
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-400 mb-1">Body Temp</div>
-              <div className="font-mono text-3xl font-black">{store.sensors.mlx90614.bodyTemp.toFixed(1)} <span className="text-sm font-sans text-slate-500">°C</span></div>
+              <div className="font-mono text-3xl font-black">{store.sensors.mlx90614.bodyTemp.toFixed(1)} <span className="text-sm font-sans text-slate-500">Â°C</span></div>
             </div>
             <div className="pt-4 border-t border-slate-200/20">
               <div className="text-xs font-semibold text-slate-400">Signal Confidence: {store.sensors.mlx90614.confidence}%</div>
@@ -91,7 +91,7 @@ export default function LiveWearablePage() {
           <div className="space-y-4">
             <div>
               <div className="text-xs font-semibold text-slate-400 mb-1">Gas Resistance (AQI Base)</div>
-              <div className="font-mono text-3xl font-black">{Math.round(store.sensors.bme688.gasResistance)} <span className="text-sm font-sans text-slate-500">Ω</span></div>
+              <div className="font-mono text-3xl font-black">{Math.round(store.sensors.bme688.gasResistance)} <span className="text-sm font-sans text-slate-500">Î©</span></div>
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-400 mb-1">Humidity</div>

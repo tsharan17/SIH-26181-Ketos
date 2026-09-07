@@ -13,7 +13,10 @@ export type Scenario =
   | 'DISASTER' 
   | 'NETWORK_FAILURE' 
   | 'ULTRA_SAVER'
-  | 'EMERGENCY';
+  | 'EMERGENCY'
+  | 'DEHYDRATION'
+  | 'HEART_PALPITATION'
+  | 'HYPOTHERMIA';
 
 export interface SensorData {
   max30102: { hr: number; spo2: number; status: string; confidence: number };
@@ -65,22 +68,38 @@ export interface DerivedData {
   healthCapsule: any | null;
 }
 
-export interface PraanaState {
+export interface UserProfile {
+  name: string;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  age: number;
+  weight: number;
+  height: number;
+  bloodType: string;
+  vo2max: number;
+  hrvBaseline: number;
+  activityLevel: 'SEDENTARY' | 'MODERATE' | 'ACTIVE' | 'ATHLETE';
+  calibrated: boolean;
+}
+
+export interface myhealthState {
   globalMode: GlobalMode;
-  hardwareStatus: 'WAITING' | 'CONNECTED';
+  language: 'EN' | 'TE';
+  hardwareStatus: any; // Allow object for hardware connection details
   simulationState: 'PLAYING' | 'PAUSED';
   simulationSpeed: number;
   scenario: Scenario;
   simTime: number;
   
+  userProfile: UserProfile;
   sensors: SensorData;
   derived: DerivedData;
 
+  setLanguage: (lang: 'EN' | 'TE') => void;
   setGlobalMode: (mode: GlobalMode) => void;
   setScenario: (scenario: Scenario) => void;
   toggleSimulation: () => void;
   setSimulationSpeed: (speed: number) => void;
-  updateState: (partialState: Partial<PraanaState>) => void;
+  updateState: (partialState: Partial<myhealthState>) => void;
   tick: () => void;
 }
 
@@ -94,8 +113,21 @@ const initialSensors: SensorData = {
   connectivity: 'CONNECTED',
 };
 
+const initialUserProfile: UserProfile = {
+  name: 'User',
+  gender: 'MALE', 
+  age: 28,
+  weight: 70,
+  height: 175,
+  bloodType: 'O+',
+  vo2max: 45,
+  hrvBaseline: 65,
+  activityLevel: 'MODERATE',
+  calibrated: false,
+};
+
 const initialDerived: DerivedData = {
-  healthReserve: 92,
+  healthReserve: 9200, // scaled to 10000
   context: 'RESTING',
   activity: 'Resting',
   recovery: 'NORMAL',
@@ -126,17 +158,20 @@ const initialDerived: DerivedData = {
   healthCapsule: null,
 };
 
-export const usePraanaStore = create<PraanaState>((set) => ({
+export const usemyhealthStore = create<myhealthState>((set) => ({
   globalMode: 'SIMULATION',
-  hardwareStatus: 'WAITING',
+  language: 'EN',
+  hardwareStatus: { connected: false },
   simulationState: 'PLAYING',
   simulationSpeed: 1,
   scenario: 'NORMAL_DAY',
   simTime: Date.now(),
   
+  userProfile: initialUserProfile,
   sensors: initialSensors,
   derived: initialDerived,
 
+  setLanguage: (lang) => set({ language: lang }),
   setGlobalMode: (mode) => set({ globalMode: mode }),
   setScenario: (scenario) => set({ scenario, simulationState: 'PLAYING' }),
   toggleSimulation: () => set((state) => ({ simulationState: state.simulationState === 'PLAYING' ? 'PAUSED' : 'PLAYING' })),

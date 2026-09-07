@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { usePraanaStore, Scenario, SensorData, DerivedData } from '@/store/usePraanaStore';
+import { usemyhealthStore, Scenario, SensorData, DerivedData } from '@/store/usemyhealthStore';
 
 // Helper to smoothly transition a value towards a target
 const lerp = (start: number, end: number, amt: number) => {
@@ -8,7 +8,7 @@ const lerp = (start: number, end: number, amt: number) => {
 };
 
 export function useSimulationEngine() {
-  const store = usePraanaStore();
+  const store = usemyhealthStore();
   const lastTick = useRef<number>(Date.now());
 
   useEffect(() => {
@@ -67,6 +67,19 @@ export function useSimulationEngine() {
             targetMotion = 'FALL_DETECTED';
             targetHr = 135; // Shock
             break;
+          case 'DEHYDRATION':
+            targetTemp = 37.8;
+            targetHr = 110;
+            break;
+          case 'HEART_PALPITATION':
+            targetHr = 160 + Math.sin(now / 200) * 20; // Erratic
+            targetSpo2 = 94;
+            break;
+          case 'HYPOTHERMIA':
+            targetTemp = 32.5;
+            targetHr = 50;
+            targetMotion = 'STATIONARY';
+            break;
         }
 
         // Apply temporally correlated smooth transitions
@@ -82,13 +95,17 @@ export function useSimulationEngine() {
         newSensors.battery = Math.max(0, store.sensors.battery - (tickDelta * 0.005));
         newSensors.phoneBattery = Math.max(0, store.sensors.phoneBattery - (tickDelta * 0.002));
         
-        if (store.scenario === 'NETWORK_FAILURE' || store.scenario === 'DISASTER') {
+        if (store.scenario === 'NETWORK_FAILURE' || store.scenario === 'DISASTER' || store.scenario === 'ULTRA_SAVER') {
           newSensors.battery = Math.min(newSensors.battery, 12); // simulate low battery during disaster
           newSensors.phoneBattery = Math.min(newSensors.phoneBattery, 8);
+        } else if (newSensors.battery < 30 || newSensors.phoneBattery < 30) {
+          // Rapid recharge for simulation purposes so we don't get stuck in Ultra Saver
+          newSensors.battery = Math.min(100, newSensors.battery + (tickDelta * 20));
+          newSensors.phoneBattery = Math.min(100, newSensors.phoneBattery + (tickDelta * 20));
         }
 
         // Ultra Saver Mode Logic
-        newDerived.ultraSaverActive = (newSensors.battery < 15 && newSensors.phoneBattery < 15) || store.scenario === 'NETWORK_FAILURE';
+        newDerived.ultraSaverActive = (newSensors.battery < 15 && newSensors.phoneBattery < 15) || store.scenario === 'NETWORK_FAILURE' || store.scenario === 'ULTRA_SAVER';
 
         if (newDerived.ultraSaverActive) {
           newSensors.connectivity = 'LORA_MESH';
@@ -148,7 +165,7 @@ export function useSimulationEngine() {
         if (newSensors.mpu6050.motion === 'FALL_DETECTED') {
            newDerived.context = 'POSSIBLE FALL';
            newDerived.risk = 'EMERGENCY';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 30, tickDelta * 0.5);
+           newDerived.healthReserve = lerp(newDerived.healthReserve, 3000, tickDelta * 0.5);
            newDerived.recommendation = 'Fall detected. Initiating Emergency Mesh Broadcast.';
            newDerived.hazard = 'HIGH';
            newDerived.hazardType = 'MEDICAL_EMERGENCY';
@@ -159,7 +176,7 @@ export function useSimulationEngine() {
            newDerived.hazardConfidence = 96;
            newDerived.hazardType = 'AIR_QUALITY_ALERT';
            newDerived.risk = 'EMERGENCY';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 45, tickDelta * 0.2);
+           newDerived.healthReserve = lerp(newDerived.healthReserve, 4500, tickDelta * 0.2);
            newDerived.recommendation = 'Dangerous air quality. Wear an N95 mask and move to filtered air.';
            newDerived.predictiveHorizon = `Severe respiratory distress in ${Math.max(1, Math.round(15 - newDerived.exposureDebt/10))} mins`;
         } else if (newSensors.mlx90614.ambientTemp > 38 && newSensors.max30102.hr > 90) {
@@ -168,7 +185,7 @@ export function useSimulationEngine() {
            newDerived.hazardType = 'EXTREME_HEAT';
            newDerived.hazardConfidence = 89;
            newDerived.risk = 'HIGH RISK';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 55, tickDelta * 0.1);
+           newDerived.healthReserve = lerp(newDerived.healthReserve, 5500, tickDelta * 0.1);
            newDerived.recommendation = 'Heat stress detected. Seek shade, rest, and rehydrate immediately.';
            newDerived.predictiveHorizon = `Heat exhaustion imminent in ${Math.max(1, Math.round(45 - newDerived.exposureDebt/5))} mins`;
         } else if (store.scenario === 'FLOOD_WARNING') {
@@ -177,7 +194,7 @@ export function useSimulationEngine() {
            newDerived.hazardType = 'FLOOD_WARNING';
            newDerived.hazardConfidence = 99;
            newDerived.risk = 'CAUTION';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 70, tickDelta * 0.05);
+           newDerived.healthReserve = lerp(newDerived.healthReserve, 7000, tickDelta * 0.05);
            newDerived.recommendation = 'Flood warning active in your zone. Follow micro-climate evacuation routes.';
            newDerived.predictiveHorizon = 'Water levels peaking in 2.5 hours';
         } else if (newDerived.ultraSaverActive) {
@@ -190,7 +207,7 @@ export function useSimulationEngine() {
         } else if (store.scenario === 'SLEEPING') {
            newDerived.context = 'SLEEPING';
            newDerived.activity = 'Low';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 98, tickDelta * 0.1);
+           newDerived.healthReserve = lerp(newDerived.healthReserve, 9800, tickDelta * 0.1);
            newDerived.sleepQuality = Math.min(100, newDerived.sleepQuality + tickDelta * 0.1);
            newDerived.risk = 'SAFE';
            newDerived.hazard = 'LOW';
@@ -200,7 +217,7 @@ export function useSimulationEngine() {
         } else if (newSensors.max30102.hr > 110 && newSensors.mpu6050.motion === 'RUNNING') {
            newDerived.context = 'EXERCISING';
            newDerived.activity = 'High';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 85, tickDelta * 0.05);
+           newDerived.healthReserve = lerp(newDerived.healthReserve, 8500, tickDelta * 0.05);
            newDerived.risk = 'SAFE';
            newDerived.hazard = 'LOW';
            newDerived.hazardType = null;
@@ -213,7 +230,7 @@ export function useSimulationEngine() {
            newDerived.context = 'NORMAL ACTIVITY';
            newDerived.hazard = 'LOW';
            newDerived.hazardType = null;
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 95, tickDelta * 0.05);
+           newDerived.healthReserve = lerp(newDerived.healthReserve, 9500, tickDelta * 0.05);
            newDerived.risk = 'SAFE';
            newDerived.recommendation = 'All baseline health parameters are optimal.';
            newDerived.predictiveHorizon = 'Stable trajectory for the next 12 hours.';

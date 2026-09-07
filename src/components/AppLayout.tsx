@@ -3,25 +3,29 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { HeartPulse, Activity, Wind, Map, ShieldAlert, TestTube, Settings } from 'lucide-react';
-import { usePraanaStore } from '@/store/usePraanaStore';
+import { usemyhealthStore } from '@/store/usemyhealthStore';
+import { useTranslation } from '@/locales/translations';
 import { useSimulationEngine } from '@/simulation/engine';
+import { ESP32Connector } from './ESP32Connector';
 
-const navItems = [
-  { name: 'Dashboard', href: '/', icon: HeartPulse },
-  { name: 'Wearable', href: '/wearable', icon: Activity },
-  { name: 'Recovery', href: '/recovery', icon: HeartPulse },
-  { name: 'Disaster', href: '/disaster', icon: ShieldAlert },
-  { name: 'Lab', href: '/lab', icon: TestTube },
+const navItemsList = [
+  { key: 'dashboard', href: '/', icon: HeartPulse },
+  { key: 'wearable', href: '/wearable', icon: Activity },
+  { key: 'recovery', href: '/recovery', icon: HeartPulse },
+  { key: 'disaster', href: '/disaster', icon: ShieldAlert },
+  { key: 'lab', href: '/lab', icon: TestTube },
+  { key: 'calendar', href: '/calendar', icon: Map },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { globalMode, setGlobalMode, hardwareStatus, derived } = usePraanaStore();
+  const { globalMode, setGlobalMode, hardwareStatus, derived, language } = usemyhealthStore();
+  const t = useTranslation();
   
   // Start the simulation engine loop
   useSimulationEngine();
 
-  const isUltra = derived.ultraSaverActive;
+  const isUltra = derived?.ultraSaverActive || false;
 
   return (
     <div className={`min-h-screen font-sans selection:bg-blue-200 transition-colors duration-1000 ${isUltra ? 'bg-black text-slate-300' : 'bg-[#F7F9FC] text-slate-900'}`}>
@@ -35,16 +39,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <HeartPulse className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className={`text-xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r ${isUltra ? 'from-white to-slate-400' : 'from-slate-900 to-slate-700'}`}>MY HEALTH</h1>
+              <h1 className={`text-xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r ${isUltra ? 'from-white to-slate-400' : 'from-slate-900 to-slate-700'}`}>{t.myHealth}</h1>
             </div>
           </div>
 
           <nav className={`hidden md:flex items-center gap-1 p-1 rounded-2xl ${isUltra ? 'bg-slate-900/50' : 'bg-slate-100/50'}`}>
-            {navItems.map((item) => {
+            {navItemsList.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link 
-                  key={item.name} 
+                  key={item.key} 
                   href={item.href}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                     isActive 
@@ -53,13 +57,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                  {item.name}
+                  {t[item.key as keyof typeof t]}
                 </Link>
               );
             })}
           </nav>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => usemyhealthStore.getState().setLanguage(language === 'EN' ? 'TE' : 'EN')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isUltra ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            >
+              {language === 'EN' ? 'తెలుగు' : 'English'}
+            </button>
             <button
               onClick={() => setGlobalMode(globalMode === 'SIMULATION' ? 'HARDWARE' : 'SIMULATION')}
               className={`relative overflow-hidden px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
@@ -68,7 +78,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
               }`}
             >
-              {globalMode === 'SIMULATION' ? 'SIMULATION MODE' : 'HARDWARE MODE'}
+              {globalMode === 'SIMULATION' ? t.simulationMode : t.hardwareMode}
             </button>
           </div>
         </header>
@@ -76,6 +86,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="pt-28 pb-32 px-4 max-w-7xl mx-auto min-h-screen">
+        <ESP32Connector />
         {children}
       </main>
 

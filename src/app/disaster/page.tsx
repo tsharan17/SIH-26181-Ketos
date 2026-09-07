@@ -1,10 +1,10 @@
 'use client';
 import React from 'react';
-import { usePraanaStore } from '@/store/usePraanaStore';
+import { usemyhealthStore } from '@/store/usemyhealthStore';
 import { ShieldAlert, MapPin, Radio, AlertTriangle, Info } from 'lucide-react';
 
 export default function DisasterIntelligencePage() {
-  const store = usePraanaStore();
+  const store = usemyhealthStore();
 
   return (
     <div className="max-w-6xl mx-auto pb-12">

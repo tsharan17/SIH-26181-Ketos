@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PRAANA - My Health",
+  title: "myhealth - My Health",
   description: "Personal health and disaster resilience platform",
 };
 
