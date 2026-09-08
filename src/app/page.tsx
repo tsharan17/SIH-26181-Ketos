@@ -41,6 +41,16 @@ export default function MyHealthDashboard() {
     setShowLogFeeling(false);
   };
 
+  // Auto-trigger Emergency Capsule on Fall
+  React.useEffect(() => {
+    if (store.sensors.mpu6050.motion === 'FALL_DETECTED') {
+      setShowCapsule(true);
+      if (!store.derived.meshNetworkActive) {
+        store.updateState({ derived: { ...store.derived, meshNetworkActive: true, risk: 'EMERGENCY' } });
+      }
+    }
+  }, [store.sensors.mpu6050.motion]);
+
   return (
     <div className={`relative min-h-screen pb-32 transition-colors duration-1000 ${isUltra ? 'bg-black text-slate-300' : ''}`}>
       <CalibrationModal />
@@ -50,10 +60,10 @@ export default function MyHealthDashboard() {
         <div>
           <h1 className={`text-4xl md:text-5xl font-black tracking-tight ${isUltra ? 'text-white' : 'text-slate-900'}`}>{t.dashboard}</h1>
           <div className="flex items-center gap-3 mt-2">
-            <p className={`font-medium text-lg ${isUltra ? 'text-slate-500' : 'text-slate-500'}`}>Advanced Physiological AI Monitoring</p>
+            <p className={`font-medium text-lg ${isUltra ? 'text-slate-500' : 'text-slate-500'}`}>{t.advancedMonitoring}</p>
             {isUltra && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-500 text-xs font-bold rounded-lg border border-yellow-500/30 animate-pulse">
-                <Battery className="w-3 h-3" /> ULTRA SAVER MODE
+                <Battery className="w-3 h-3" /> {t.ultraSaverMode}
               </span>
             )}
           </div>
@@ -64,7 +74,7 @@ export default function MyHealthDashboard() {
             className={`px-5 py-3 rounded-2xl text-white font-black tracking-widest shadow-lg transition-all flex items-center gap-2 ${store.derived.meshNetworkActive ? 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20 animate-pulse' : 'bg-slate-800 hover:bg-slate-700 shadow-slate-900/50'}`}
           >
             {store.derived.meshNetworkActive ? <Network className="w-5 h-5" /> : <Database className="w-5 h-5 text-rose-500" />}
-            {store.derived.meshNetworkActive ? 'CAPSULE ACTIVE' : 'BLACK BOX'}
+            {store.derived.meshNetworkActive ? t.capsuleActive : t.blackBox}
           </button>
           <div className={`px-6 py-3 border rounded-2xl text-white font-black tracking-widest text-lg shadow-xl bg-gradient-to-r ${getRiskGradient(store.derived.risk)}`}>
             {t.currentStatus}: {t[store.derived.risk.toLowerCase().replace(' ', '') as keyof typeof t] || store.derived.risk}
@@ -80,7 +90,7 @@ export default function MyHealthDashboard() {
           </div>
           <div className="p-8 relative z-10">
             <div className="text-sm font-bold tracking-widest text-blue-500 mb-2 uppercase flex items-center gap-2">
-              <SparkleIcon /> Edge AI Recommendation
+              <SparkleIcon /> {t.edgeAiRec}
             </div>
             <h2 className={`text-2xl md:text-3xl font-black leading-tight max-w-3xl ${isUltra ? 'text-white' : 'text-slate-800'}`}>
               "{store.derived.recommendation}"
@@ -95,7 +105,7 @@ export default function MyHealthDashboard() {
            <div className="relative z-10 h-full flex flex-col justify-between">
              <div>
                <div className="text-sm font-bold tracking-widest text-indigo-400 mb-2 uppercase flex items-center gap-2">
-                 <Clock className="w-4 h-4" /> Predictive Horizon
+                 <Clock className="w-4 h-4" /> {t.predictiveHorizon}
                </div>
                <h3 className="text-xl font-black leading-tight text-white mb-2">
                  {store.derived.predictiveHorizon}
@@ -114,9 +124,9 @@ export default function MyHealthDashboard() {
         <div className="flex flex-col md:flex-row items-center gap-4">
           <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
             <SensorBadge name="MAX30102" label={t.heartRate} val={`${Math.round(store.sensors.max30102.hr)} BPM`} isUltra={isUltra} />
-            <SensorBadge name="MLX90614" label={t.bodyTemp} val={`${store.sensors.mlx90614.ambientTemp.toFixed(1)}°C`} isUltra={isUltra} />
-            <SensorBadge name="BME688" label={t.airQuality} val={`${Math.round(store.sensors.bme688.gasResistance)} Ω`} isUltra={isUltra} />
-            <SensorBadge name="MPU6050" label="Kinematics" val={store.sensors.mpu6050.motion} isUltra={isUltra} />
+            <SensorBadge name="MAX30102" label={t.oxygen} val={`${Math.round(store.sensors.max30102.spo2)}%`} isUltra={isUltra} />
+            <SensorBadge name="DHT11" label={t.bodyTemp} val={`${store.sensors.mlx90614.ambientTemp.toFixed(1)}°C`} isUltra={isUltra} />
+            <SensorBadge name="MPU6500" label={t.motion} val={store.sensors.mpu6050.motion} isUltra={isUltra} />
           </div>
           
           <div className="px-4 text-slate-300"><Activity className="w-6 h-6" /></div>
@@ -235,10 +245,11 @@ export default function MyHealthDashboard() {
                  <div className="space-y-4">
                    <div className="text-blue-400"># Current System State (Black Box Recording)</div>
                    <div className="text-slate-300">
-                     <div>HR_AVG_15M: {Math.round(store.sensors.max30102.hr)} BPM</div>
-                     <div>SPO2_BASE: {Math.round(store.sensors.max30102.spo2)}%</div>
-                     <div>CORE_TEMP_EST: {store.sensors.mlx90614.ambientTemp.toFixed(1)}°C</div>
-                     <div>KINEMATIC_VECTOR: {store.sensors.mpu6050.motion}</div>
+                     <div>MAX30102_HR: {Math.round(store.sensors.max30102.hr)} BPM</div>
+                     <div>MAX30102_SPO2: {Math.round(store.sensors.max30102.spo2)}%</div>
+                     <div>DHT11_TEMP: {store.sensors.mlx90614.ambientTemp.toFixed(1)}°C</div>
+                     <div>DHT11_HUMIDITY: {Math.round(store.sensors.bme688.humidity)}%</div>
+                     <div>MPU6500_MOTION: {store.sensors.mpu6050.motion}</div>
                    </div>
                    <div className="text-rose-400"># Cumulative Hazard Vectors</div>
                    <div className="text-slate-300">

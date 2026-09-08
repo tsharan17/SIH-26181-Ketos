@@ -1,12 +1,13 @@
-'use client';
 import React, { useState } from 'react';
-import { Bluetooth, Wifi, Activity } from 'lucide-react';
+import { Bluetooth, Wifi, Activity, Cloud } from 'lucide-react';
 import { usemyhealthStore } from '@/store/usemyhealthStore';
+import { syncVitalsToFirestore } from '@/lib/firebaseSync';
 
 export function ESP32Connector() {
-  const { globalMode, updateState } = usemyhealthStore();
+  const { globalMode, updateState, hardwareStatus } = usemyhealthStore();
   const [connecting, setConnecting] = useState(false);
-  const [deviceIp, setDeviceIp] = useState('192.168.1.100');
+  const [deviceIp, setDeviceIp] = useState('praana.local');
+  const [cloudSynced, setCloudSynced] = useState(false);
 
   if (globalMode !== 'HARDWARE') return null;
 
@@ -14,11 +15,12 @@ export function ESP32Connector() {
     try {
       setConnecting(true);
       // Web Bluetooth API generic connection
-      const device = await navigator.bluetooth.requestDevice({
+      const nav = navigator as any;
+      const device = await nav.bluetooth?.requestDevice({
         acceptAllDevices: true,
         optionalServices: ['battery_service'] // Example generic service
       });
-      const server = await device.gatt?.connect();
+      const server = await device?.gatt?.connect();
       updateState({ hardwareStatus: { connected: true, deviceName: device.name || 'ESP32 BLE', batteryLevel: 100, signalStrength: -50 } });
       alert(`Connected to ${device.name}`);
     } catch (e: any) {
@@ -35,6 +37,52 @@ export function ESP32Connector() {
       if (res.ok) {
         updateState({ hardwareStatus: { connected: true, deviceName: `ESP32 (${deviceIp})`, batteryLevel: 100, signalStrength: -40 } });
         alert('Connected to ESP32 via Wi-Fi!');
+        
+        // Start polling real-time data
+        setInterval(async () => {
+          try {
+             const dataRes = await fetch(`http://${deviceIp}/health`);
+             if (dataRes.ok) {
+                const data = await dataRes.json();
+                const currentState = usemyhealthStore.getState();
+                currentState.updateState({
+                   sensors: {
+                     ...currentState.sensors,
+                     max30102: { 
+                        ...currentState.sensors.max30102, 
+                        hr: data.heartRate > 0 ? data.heartRate : currentState.sensors.max30102.hr, 
+                        spo2: data.spo2 > 0 ? data.spo2 : currentState.sensors.max30102.spo2 
+                     },
+                     mlx90614: {
+                        ...currentState.sensors.mlx90614,
+                        ambientTemp: data.temperature
+                     },
+                     bme688: {
+                        ...currentState.sensors.bme688,
+                        humidity: data.humidity
+                     },
+                     mpu6050: {
+                        ...currentState.sensors.mpu6050,
+                        motion: data.fallDetected ? "FALL_DETECTED" : (data.motion > 1.2 ? "MOVING" : "STATIONARY")
+                     }
+                   }
+                });
+
+                // Sync live vitals to Firebase Firestore
+                syncVitalsToFirestore({
+                  heartRate: data.heartRate > 0 ? data.heartRate : currentState.sensors.max30102.hr,
+                  spo2: data.spo2 > 0 ? data.spo2 : currentState.sensors.max30102.spo2,
+                  temperature: data.temperature,
+                  humidity: data.humidity,
+                  motion: data.fallDetected ? "FALL_DETECTED" : (data.motion > 1.2 ? "MOVING" : "STATIONARY"),
+                  fallDetected: !!data.fallDetected,
+                  battery: 100
+                });
+                setCloudSynced(true);
+             }
+          } catch(e) { /* ignore polling errors to prevent console spam */ }
+        }, 200);
+        
       } else {
         alert('Failed to connect to ESP32.');
       }
@@ -52,7 +100,14 @@ export function ESP32Connector() {
           <Activity className="w-5 h-5 text-emerald-600" />
         </div>
         <div>
-          <h3 className="font-bold text-slate-800">Hardware Mode Active</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-slate-800">Hardware Mode Active</h3>
+            {cloudSynced && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full animate-pulse">
+                <Cloud className="w-3 h-3 text-emerald-600" /> Firebase Synced
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">Connect to your ESP32 device</p>
         </div>
       </div>

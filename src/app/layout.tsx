@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppLayout } from "@/components/AppLayout";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "myhealth - My Health",
-  description: "Personal health and disaster resilience platform",
+  title: "Praana",
+  description: "AI-Powered Health Monitoring & Emergency Mesh Network",
 };
 
 export default function RootLayout({
@@ -17,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-slate-50 text-slate-900`}>
+      <body className={`bg-slate-50 text-slate-900 font-sans`}>
         <AppLayout>{children}</AppLayout>
       </body>
     </html>

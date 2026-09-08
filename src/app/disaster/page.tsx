@@ -107,7 +107,7 @@ export default function DisasterIntelligencePage() {
              <div>
                <h4 className="font-bold text-blue-900">How this works</h4>
                <p className="text-sm text-blue-800 mt-1">
-                 MY HEALTH correlates your local environmental sensors (like the MQ-2 gas sensor currently reading {Math.round(store.sensors.bme688.gasResistance)}ppm) 
+                 PRAANA correlates your local environmental sensors (like the MQ-2 gas sensor currently reading {Math.round(store.sensors.bme688.gasResistance)}ppm) 
                  with regional disaster APIs to reduce false alarms and increase hazard confidence. 
                  Real mapping APIs (like Mapbox) will be integrated here in future phases.
                </p>

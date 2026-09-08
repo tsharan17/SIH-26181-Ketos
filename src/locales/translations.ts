@@ -7,11 +7,11 @@ export const translations = {
     wearable: 'Wearable',
     recovery: 'Recovery',
     disaster: 'Disaster',
-    lab: 'Model Lab',
+    myHealth: 'PRAANA',
+    modelLab: 'Model Lab',
     calendar: 'Calendar',
     simulationMode: 'SIMULATION MODE',
     hardwareMode: 'HARDWARE MODE',
-    myHealth: 'MY HEALTH',
     
     // Connectors
     hardwareModeActive: 'Hardware Mode Active',
@@ -61,7 +61,15 @@ export const translations = {
     modelLab: 'Advanced AI Model Lab',
     neuralNetwork: 'Neural Network Status',
     weights: 'Model Weights',
-    runInference: 'Run Inference'
+    runInference: 'Run Inference',
+    
+    advancedMonitoring: 'Advanced Physiological AI Monitoring',
+    ultraSaverMode: 'ULTRA SAVER MODE',
+    capsuleActive: 'CAPSULE ACTIVE',
+    blackBox: 'BLACK BOX',
+    edgeAiRec: 'Edge AI Recommendation',
+    predictiveHorizon: 'Predictive Horizon',
+    motion: 'Motion'
   },
   TE: {
     // Navigation
@@ -73,7 +81,7 @@ export const translations = {
     calendar: 'క్యాలెండర్',
     simulationMode: 'సిమ్యులేషన్ మోడ్',
     hardwareMode: 'హార్డ్‌వేర్ మోడ్',
-    myHealth: 'నా ఆరోగ్యం',
+    myHealth: 'ప్రాణ',
     
     // Connectors
     hardwareModeActive: 'హార్డ్‌వేర్ మోడ్ ఆక్టివ్',
@@ -123,7 +131,15 @@ export const translations = {
     modelLab: 'అధునాతన AI మోడల్ ల్యాబ్',
     neuralNetwork: 'న్యూరల్ నెట్‌వర్క్ స్థితి',
     weights: 'మోడల్ బరువులు',
-    runInference: 'ఇన్ఫరెన్స్ రన్ చేయండి'
+    runInference: 'ఇన్ఫరెన్స్ రన్ చేయండి',
+    
+    advancedMonitoring: 'అధునాతన శారీరక AI పర్యవేక్షణ',
+    ultraSaverMode: 'అల్ట్రా సేవర్ మోడ్',
+    capsuleActive: 'క్యాప్సూల్ యాక్టివ్',
+    blackBox: 'బ్లాక్ బాక్స్',
+    edgeAiRec: 'ఎడ్జ్ AI సిఫార్సు',
+    predictiveHorizon: 'ప్రిడిక్టివ్ హారిజోన్',
+    motion: 'కదలిక'
   }
 };
 

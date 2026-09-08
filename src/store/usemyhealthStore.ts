@@ -69,15 +69,24 @@ export interface DerivedData {
 }
 
 export interface UserProfile {
+  uid?: string;
+  email?: string;
   name: string;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
-  age: number;
-  weight: number;
-  height: number;
-  bloodType: string;
-  vo2max: number;
-  hrvBaseline: number;
-  activityLevel: 'SEDENTARY' | 'MODERATE' | 'ACTIVE' | 'ATHLETE';
+  gender: string;
+  age: string;
+  weight: string;
+  height: string;
+  healthConditions: string;
+  regularMedication: string;
+  familyHeartHistory: string;
+  fatigueFrequency: string;
+  activityLevel: string;
+  exerciseFrequency: string;
+  sleepHours: string;
+  timeOutdoors: string;
+  environment: string;
+  environmentalRisks: string;
+  emergencyContact: string;
   calibrated: boolean;
 }
 
@@ -114,15 +123,22 @@ const initialSensors: SensorData = {
 };
 
 const initialUserProfile: UserProfile = {
-  name: 'User',
-  gender: 'MALE', 
-  age: 28,
-  weight: 70,
-  height: 175,
-  bloodType: 'O+',
-  vo2max: 45,
-  hrvBaseline: 65,
-  activityLevel: 'MODERATE',
+  name: '',
+  gender: '', 
+  age: '',
+  weight: '',
+  height: '',
+  healthConditions: 'None',
+  regularMedication: 'No',
+  familyHeartHistory: 'Not sure',
+  fatigueFrequency: 'Never',
+  activityLevel: 'Moderately active',
+  exerciseFrequency: '1–2 days',
+  sleepHours: '7–9',
+  timeOutdoors: '1–3 hours',
+  environment: 'Mixed',
+  environmentalRisks: 'None',
+  emergencyContact: '',
   calibrated: false,
 };
 

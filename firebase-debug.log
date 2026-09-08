@@ -1,0 +1,75 @@
+[debug] [2026-09-08T14:38:26.147Z] ----------------------------------------------------------------------
+[debug] [2026-09-08T14:38:26.151Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ShwethaSharan T\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-09-08T14:38:26.152Z] CLI Version:   15.29.0
+[debug] [2026-09-08T14:38:26.152Z] Platform:      win32
+[debug] [2026-09-08T14:38:26.152Z] Node Version:  v24.13.1
+[debug] [2026-09-08T14:38:26.153Z] Detected Agent: unknown
+[debug] [2026-09-08T14:38:26.153Z] Time:          Tue Sep 08 2026 20:08:26 GMT+0530 (India Standard Time)
+[debug] [2026-09-08T14:38:26.153Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-08T14:38:59.647Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-08T14:38:59.647Z] > authorizing via signed-in user (nithyahasini.alle@gmail.com)
+[debug] [2026-09-08T14:38:59.648Z] [iam] checking project praana-sih for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-09-08T14:38:59.670Z] Checked if tokens are valid: false, expires at: 1788865197597
+[debug] [2026-09-08T14:38:59.671Z] Checked if tokens are valid: false, expires at: 1788865197597
+[debug] [2026-09-08T14:38:59.672Z] > refreshing access token with scopes: []
+[debug] [2026-09-08T14:38:59.676Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-09-08T14:38:59.676Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-09-08T14:38:59.892Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-09-08T14:38:59.893Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-09-08T14:38:59.920Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/praana-sih:testIamPermissions [none]
+[debug] [2026-09-08T14:38:59.920Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/praana-sih:testIamPermissions  x-goog-user-project=praana-sih
+[debug] [2026-09-08T14:38:59.920Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/praana-sih:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-08T14:39:01.278Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/praana-sih:testIamPermissions 200
+[debug] [2026-09-08T14:39:01.278Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/praana-sih:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-08T14:39:01.281Z] Checked if tokens are valid: true, expires at: 1788881938893
+[debug] [2026-09-08T14:39:01.281Z] Checked if tokens are valid: true, expires at: 1788881938893
+[debug] [2026-09-08T14:39:01.282Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/praana-sih [none]
+[debug] [2026-09-08T14:39:02.038Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/praana-sih 200
+[debug] [2026-09-08T14:39:02.039Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/praana-sih {"projectId":"praana-sih","projectNumber":"1088423174487","displayName":"Praana","name":"projects/praana-sih","resources":{"hostingSite":"praana-sih"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_0572fdad-42a4-4f34-878e-db0ed44c8739"}
+[debug] [2026-09-08T14:39:18.093Z] Checked if tokens are valid: true, expires at: 1788881938893
+[debug] [2026-09-08T14:39:18.093Z] Checked if tokens are valid: true, expires at: 1788881938893
+[debug] [2026-09-08T14:39:18.094Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/praana-sih/sites pageToken=&pageSize=10
+[debug] [2026-09-08T14:39:19.418Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/praana-sih/sites 200
+[debug] [2026-09-08T14:39:19.418Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/praana-sih/sites {"sites":[{"name":"projects/praana-sih/sites/praana-sih","defaultUrl":"https://praana-sih.web.app","appId":"1:1088423174487:web:93fa1db2e79a6bdd391e12","type":"DEFAULT_SITE"}]}
+[debug] [2026-09-08T14:39:19.419Z] Checked if tokens are valid: true, expires at: 1788881938893
+[debug] [2026-09-08T14:39:19.419Z] Checked if tokens are valid: true, expires at: 1788881938893
+[debug] [2026-09-08T14:39:19.419Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:1088423174487:web:93fa1db2e79a6bdd391e12/config [none]
+[debug] [2026-09-08T14:39:20.636Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:1088423174487:web:93fa1db2e79a6bdd391e12/config 200
+[debug] [2026-09-08T14:39:20.636Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:1088423174487:web:93fa1db2e79a6bdd391e12/config {"projectId":"praana-sih","appId":"1:1088423174487:web:93fa1db2e79a6bdd391e12","storageBucket":"praana-sih.firebasestorage.app","apiKey":"AIzaSyDPv5k2S_VXxWlFI1zd1kl2ZpNtgK80ec0","authDomain":"praana-sih.firebaseapp.com","messagingSenderId":"1088423174487","projectNumber":"1088423174487","version":"2"}
+[info] 
+   Thank you for trying our early preview of Next.js support on Firebase Hosting.
+   During the preview, support is best-effort and breaking changes can be expected. Proceed with caution.
+   The integration is known to work with Next.js version 12 - 16.0. You may encounter errors.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/nextjs
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2026-09-08T14:39:26.008Z] Checked if tokens are valid: true, expires at: 1788881938893
+[debug] [2026-09-08T14:39:26.008Z] Checked if tokens are valid: true, expires at: 1788881938893
+[debug] [2026-09-08T14:39:26.008Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/praana-sih/sites/praana-sih [none]
+[debug] [2026-09-08T14:39:27.100Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/praana-sih/sites/praana-sih 200
+[debug] [2026-09-08T14:39:27.100Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/praana-sih/sites/praana-sih {"name":"projects/praana-sih/sites/praana-sih","defaultUrl":"https://praana-sih.web.app","appId":"1:1088423174487:web:93fa1db2e79a6bdd391e12","type":"DEFAULT_SITE"}
+[info] ▲ Next.js 16.3.4 (Turbopack)
+
+[info] ✓ Running next.config.ts took 94ms
+
+[info] 
+
+[info]   Creating an optimized production build ...
+
+[info] ✓ Compiled successfully in 17.7s
+
+[info]   Running TypeScript ...
+
+[info] src/locales/translations.ts(61,5): error TS1117: An object literal cannot have multiple properties with the same name.
+
+[info] Failed to type check.
+
+
+[debug] [2026-09-08T14:40:05.223Z] Error: ENOENT: no such file or directory, open 'C:\MY PROJECTS\Ketos_SIH_aihealth\My Health\.next\export-marker.json'
+[error] 
+[error] Error: An unexpected error has occurred.

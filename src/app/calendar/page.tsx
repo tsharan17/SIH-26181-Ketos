@@ -61,7 +61,7 @@ export default function CalendarPage() {
           <div>
             <h3 className="text-lg font-bold">AI Trend Analysis Active</h3>
             <p className="text-indigo-200 text-sm mt-1">
-              Your My Health backend is continuously processing hourly sensor batches to generate these insights. Data is stored securely on your device before syncing.
+              Your Praana backend is continuously processing hourly sensor batches to generate these insights. Data is stored securely on your device before syncing.
             </p>
           </div>
         </div>
