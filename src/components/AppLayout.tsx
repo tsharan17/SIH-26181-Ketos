@@ -7,6 +7,7 @@ import { usemyhealthStore } from '@/store/usemyhealthStore';
 import { useTranslation } from '@/locales/translations';
 import { useSimulationEngine } from '@/simulation/engine';
 import { ESP32Connector } from './ESP32Connector';
+import { SimulationControlPanel } from './SimulationControlPanel';
 
 const navItemsList = [
   { key: 'dashboard', href: '/', icon: HeartPulse },
@@ -90,6 +91,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
+      <SimulationControlPanel />
     </div>
   );
 }

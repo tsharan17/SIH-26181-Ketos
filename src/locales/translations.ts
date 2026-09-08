@@ -8,7 +8,6 @@ export const translations = {
     recovery: 'Recovery',
     disaster: 'Disaster',
     myHealth: 'PRAANA',
-    modelLab: 'Model Lab',
     calendar: 'Calendar',
     simulationMode: 'SIMULATION MODE',
     hardwareMode: 'HARDWARE MODE',
@@ -69,7 +68,24 @@ export const translations = {
     blackBox: 'BLACK BOX',
     edgeAiRec: 'Edge AI Recommendation',
     predictiveHorizon: 'Predictive Horizon',
-    motion: 'Motion'
+    motion: 'Motion',
+
+    // Disaster
+    disasterIntelligence: 'Disaster Intelligence',
+    disasterDesc: 'Local sensor fusion correlated with external hazard intelligence',
+    currentHazard: 'Current Hazard',
+    noActiveHazards: 'NO ACTIVE HAZARDS',
+    hazardDetected: 'HAZARD DETECTED',
+    airborneGasDetected: 'Airborne Gas Detected',
+    hazardConfidenceMatrix: 'Hazard Confidence Matrix',
+    localSensorConfirmation: 'Local Sensor Confirmation',
+    externalApiWarning: 'External API Warning (Sim)',
+    overallConfidence: 'Overall Confidence',
+    regionalTelemetry: 'Regional Environmental Telemetry',
+    liveDataLink: 'LIVE DATA LINK',
+    liveIntelligenceCore: 'Live External Intelligence Core',
+    liveIntelligenceDesc: 'PRAANA correlates your local environmental edge sensors with LIVE global APIs (Windy/ECMWF) to provide multi-layered environmental verification. The map above dynamically shifts its telemetry layer (Thermal, Precipitation, Aerosol/PM2.5, Wind Vector) based on the specific hazard PRAANA detects.',
+    firebaseSynced: 'Firebase Synced'
   },
   TE: {
     // Navigation
@@ -88,6 +104,7 @@ export const translations = {
     connectToESP32: 'ESP32 కు కనెక్ట్ చేయండి',
     bleConnect: 'BLE కనెక్ట్',
     wifiConnect: 'Wi-Fi కనెక్ట్',
+    firebaseSynced: 'ఫైర్‌బేస్ సమకాలీకరించబడింది',
 
     // Dashboard
     healthReserve: 'ఆరోగ్య నిల్వ',
@@ -139,7 +156,23 @@ export const translations = {
     blackBox: 'బ్లాక్ బాక్స్',
     edgeAiRec: 'ఎడ్జ్ AI సిఫార్సు',
     predictiveHorizon: 'ప్రిడిక్టివ్ హారిజోన్',
-    motion: 'కదలిక'
+    motion: 'కదలిక',
+
+    // Disaster
+    disasterIntelligence: 'విపత్తు ఇంటెలిజెన్స్',
+    disasterDesc: 'బాహ్య ప్రమాద ఇంటెలిజెన్స్‌తో సహసంబంధం ఉన్న స్థానిక సెన్సార్ ఫ్యూజన్',
+    currentHazard: 'ప్రస్తుత ప్రమాదం',
+    noActiveHazards: 'సక్రియ ప్రమాదాలు లేవు',
+    hazardDetected: 'ప్రమాదం కనుగొనబడింది',
+    airborneGasDetected: 'గాలిలో గ్యాస్ కనుగొనబడింది',
+    hazardConfidenceMatrix: 'ప్రమాద విశ్వాస మాత్రిక',
+    localSensorConfirmation: 'స్థానిక సెన్సార్ నిర్ధారణ',
+    externalApiWarning: 'బాహ్య API హెచ్చరిక (Sim)',
+    overallConfidence: 'మొత్తం విశ్వాసం',
+    regionalTelemetry: 'ప్రాంతీయ పర్యావరణ టెలిమెట్రీ',
+    liveDataLink: 'లైవ్ డేటా లింక్',
+    liveIntelligenceCore: 'లైవ్ ఎక్స్‌టర్నల్ ఇంటెలిజెన్స్ కోర్',
+    liveIntelligenceDesc: 'బహుళ-స్థాయి పర్యావరణ ధృవీకరణను అందించడానికి PRAANA మీ స్థానిక పర్యావరణ ఎడ్జ్ సెన్సార్‌లను LIVE గ్లోబల్ APIలతో (Windy/ECMWF) పరస్పరం అనుసంధానిస్తుంది. PRAANA గుర్తించే నిర్దిష్ట ప్రమాదం ఆధారంగా పై మ్యాప్ దాని టెలిమెట్రీ పొరను డైనమిక్‌గా మారుస్తుంది.'
   }
 };
 

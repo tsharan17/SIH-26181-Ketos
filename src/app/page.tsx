@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { usemyhealthStore } from '@/store/usemyhealthStore';
 import { useTranslation } from '@/locales/translations';
 import { CalibrationModal } from '@/components/CalibrationModal';
@@ -137,6 +138,52 @@ export default function MyHealthDashboard() {
           </div>
         </div>
       </div>
+
+      {/* AI Explanation Panel (Interactive link to Model Lab) */}
+      <Link href="/lab" className={`block mb-6 p-6 rounded-3xl border shadow-sm transition-all duration-300 cursor-pointer group hover:shadow-xl hover:-translate-y-1 hover:border-blue-300 ${isUltra ? 'bg-slate-900 border-slate-800 hover:border-blue-800' : 'bg-white border-slate-200'}`}>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 pb-4 border-b border-slate-100 group-hover:border-blue-100 transition-colors">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-black tracking-widest text-slate-400 mb-1 group-hover:text-blue-500 transition-colors">
+              <BrainCircuit className="w-4 h-4" /> AI CONTEXTUAL ENGINE <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">CLICK FOR MODEL DETAILS</span>
+            </div>
+            <h2 className={`text-xl font-black ${store.derived.risk === 'EMERGENCY' ? 'text-rose-600' : (store.derived.risk === 'HIGH RISK' ? 'text-orange-500' : (store.derived.risk === 'CAUTION' ? 'text-amber-500' : 'text-emerald-500'))}`}>
+              {store.derived.context} - {store.derived.risk}
+            </h2>
+          </div>
+          <div className="flex gap-2">
+            <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full group-hover:bg-rose-50 group-hover:text-rose-600 transition-colors">Heat: {Math.round(store.derived.detailedRisks.heat)}</span>
+            <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">Resp: {Math.round(store.derived.detailedRisks.respiratory)}</span>
+            <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full group-hover:bg-amber-50 group-hover:text-amber-600 transition-colors">Strain: {Math.round(store.derived.detailedRisks.cardiovascular)}</span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <div className="text-xs font-bold text-slate-400">CONTRIBUTING FACTORS</div>
+            <ul className={`text-sm space-y-1 ${isUltra ? 'text-slate-300' : 'text-slate-700'}`}>
+              <li>• {store.sensors.mlx90614.ambientTemp.toFixed(1)}°C local temp, {Math.round(store.sensors.bme688.humidity)}% humidity</li>
+              <li>• Motion state: {store.sensors.mpu6050.motion}</li>
+              <li>• Heart Rate: {Math.round(store.sensors.max30102.hr)} BPM</li>
+              <li>• SpO2: {Math.round(store.sensors.max30102.spo2)}%</li>
+              <li>• Data Source: {store.derived.disasterPredictionSource}</li>
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <div className="text-xs font-bold text-slate-400">PREDICTIVE HORIZON</div>
+            <div className={`text-sm font-medium ${isUltra ? 'text-white' : 'text-slate-900'}`}>{store.derived.predictiveHorizon}</div>
+            <div className="pt-2 text-xs font-bold text-slate-400">RISK TRAJECTORY</div>
+            <div className={`text-sm font-medium ${isUltra ? 'text-white' : 'text-slate-900'}`}>
+              {store.derived.risk !== 'SAFE' 
+                ? 'Your body\'s resilience is actively depleting. Please rest.' 
+                : 'Your health reserves are stable and replenishing.'}
+            </div>
+          </div>
+          <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
+            <div className="text-xs font-bold text-slate-400 group-hover:text-blue-500 transition-colors">RECOMMENDATION</div>
+            <div className="text-sm font-bold text-slate-800">{store.derived.recommendation}</div>
+          </div>
+        </div>
+      </Link>
 
       {/* Interactive Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-6">
@@ -294,60 +341,6 @@ export default function MyHealthDashboard() {
         </div>
       )}
 
-      {/* Floating Simulation Control Dock */}
-      {store.globalMode === 'SIMULATION' && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 w-[95%] max-w-4xl">
-          <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 p-3 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 px-2 text-white overflow-x-auto w-full md:w-auto no-scrollbar">
-              <span className="text-[10px] font-black tracking-widest text-slate-400 mr-2 shrink-0">SCENARIO</span>
-              {['NORMAL_DAY', 'SLEEPING', 'EXERCISE', 'HEAT_WAVE', 'POOR_AIR_QUALITY', 'FLOOD_WARNING', 'NETWORK_FAILURE', 'ULTRA_SAVER', 'FALL', 'DEHYDRATION', 'HEART_PALPITATION', 'HYPOTHERMIA'].map(sc => (
-                <button
-                  key={sc}
-                  onClick={() => store.setScenario(sc as any)}
-                  className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    store.scenario === sc ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  {sc.replace(/_/g, ' ')}
-                </button>
-              ))}
-            </div>
-            
-            <div className="flex items-center gap-2 shrink-0 bg-slate-800 p-1 rounded-2xl">
-              <button 
-                onClick={store.toggleSimulation}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                  store.simulationState === 'PLAYING' 
-                    ? 'bg-amber-500 text-amber-950 shadow-lg shadow-amber-500/20' 
-                    : 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/20'
-                }`}
-              >
-                {store.simulationState === 'PLAYING' ? <Pause className="w-5 h-5 fill-current"/> : <Play className="w-5 h-5 fill-current"/>}
-              </button>
-              <button 
-                onClick={() => store.setScenario('NORMAL_DAY')}
-                className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all"
-              >
-                <RotateCcw className="w-4 h-4"/>
-              </button>
-              
-              <div className="flex items-center gap-1 pl-2 pr-1 border-l border-slate-700 ml-1">
-                {[1, 10, 30].map(s => (
-                  <button 
-                    key={s}
-                    onClick={() => store.setSimulationSpeed(s)}
-                    className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${
-                      store.simulationSpeed === s ? 'bg-white text-slate-900' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {s}x
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -2,13 +2,13 @@
 import { useEffect, useRef } from 'react';
 import { usemyhealthStore, Scenario, SensorData, DerivedData } from '@/store/usemyhealthStore';
 
-// Helper to smoothly transition a value towards a target
+// Helper function to safely lerp without overshooting at high delta times
 const lerp = (start: number, end: number, amt: number) => {
-  return (1 - amt) * start + amt * end;
+  const safeAmt = Math.min(1, Math.max(0, amt));
+  return (1 - safeAmt) * start + safeAmt * end;
 };
 
 export function useSimulationEngine() {
-  const store = usemyhealthStore();
   const lastTick = useRef<number>(Date.now());
 
   useEffect(() => {
@@ -18,94 +18,278 @@ export function useSimulationEngine() {
       const now = Date.now();
       const delta = (now - lastTick.current) / 1000; // seconds
       
-      if (store.simulationState === 'PLAYING' && store.globalMode === 'SIMULATION') {
-        const speed = store.simulationSpeed;
-        const tickDelta = delta * speed;
-        
-        const newSensors = { ...store.sensors };
-        const newDerived = { ...store.derived };
+      const storeState = usemyhealthStore.getState();
 
-        // Determine targets based on scenario
+      if (storeState.simulationState === 'PLAYING' && storeState.globalMode === 'SIMULATION') {
+        const speed = storeState.simulationSpeed;
+        const tickDelta = delta * speed;
+        // Use the globally persisted scenarioStartTime to calculate elapsed time!
+        const elapsedScenarioTime = (now - storeState.scenarioStartTime) / 1000 * speed; // simulated seconds since scenario started
+        
+        const newSensors = { ...storeState.sensors };
+        const newDerived = { ...storeState.derived };
+
+        // Default Baseline Targets
         let targetHr = 72;
         let targetSpo2 = 98;
-        let targetTemp = 24;
+        let targetTemp = 25; // ambient
+        let targetHumidity = 50;
+        let targetGas = 100; // Normal air quality
         let targetMotion = 'STATIONARY';
-        let targetGas = 100; // Normal air quality resistance
+        let isApiStale = false;
+        let isOffline = false;
 
-        switch (store.scenario) {
-          case 'NORMAL_DAY':
-            targetHr = 75 + Math.sin(now / 2000) * 5;
-            targetMotion = 'WALKING';
-            targetGas = 100;
+        // 21 ADVANCED SIMULATION SCENARIOS
+        switch (storeState.scenario) {
+          case 'MODE_1_NORMAL':
+            targetHr = 70 + Math.sin(now / 3000) * 5;
+            targetSpo2 = 98;
+            targetTemp = 25;
+            targetMotion = 'STATIONARY';
             break;
-          case 'EXERCISE':
-            targetHr = 145 + Math.sin(now / 1000) * 10;
-            targetTemp = 37.5;
+          case 'MODE_2_EXERCISE':
+            targetHr = Math.min(150, 70 + elapsedScenarioTime * 2) + Math.sin(now / 1000) * 5;
             targetMotion = 'RUNNING';
             break;
-          case 'SLEEPING':
-            targetHr = 55 + Math.sin(now / 5000) * 3;
-            targetMotion = 'RESTING';
-            break;
-          case 'HEAT_WAVE':
-            targetTemp = 42;
-            targetHr = 105;
+          case 'MODE_3_STATIONARY_HIGH_HR':
+            targetHr = Math.min(140, 70 + elapsedScenarioTime * 1.5) + Math.sin(now / 1000) * 5;
             targetMotion = 'STATIONARY';
             break;
-          case 'POOR_AIR_QUALITY':
-            targetGas = 25; // Low resistance = high gas
-            targetSpo2 = 92; // Slight respiratory distress
-            targetHr = 95; 
+          case 'MODE_4_HEAT_EXPOSURE':
+            targetTemp = Math.min(41, 25 + elapsedScenarioTime * 0.2);
+            targetHumidity = Math.min(80, 50 + elapsedScenarioTime * 0.5);
+            targetHr = Math.min(105, 70 + elapsedScenarioTime * 0.5);
             break;
-          case 'FLOOD_WARNING':
-            targetTemp = 22;
+          case 'MODE_5_HEAT_EXERTION':
+            targetTemp = Math.min(38, 25 + elapsedScenarioTime * 0.2);
+            targetHumidity = 75;
+            targetMotion = 'RUNNING';
+            targetHr = Math.min(160, 90 + elapsedScenarioTime * 2);
+            break;
+          case 'MODE_6_DEHYDRATION':
+            targetTemp = 35;
+            targetHumidity = 60;
             targetMotion = 'WALKING';
-            // Simulating high activity/evacuation context
-            targetHr = 115;
+            targetHr = Math.min(130, 80 + elapsedScenarioTime * 0.5);
             break;
-          case 'FALL':
-            targetMotion = 'FALL_DETECTED';
-            targetHr = 135; // Shock
+          case 'MODE_7_RESPIRATORY_RISK':
+            targetGas = Math.max(20, 100 - elapsedScenarioTime * 1); // Poor AQI
+            targetSpo2 = Math.max(92, 98 - elapsedScenarioTime * 0.1);
+            targetMotion = 'WALKING';
             break;
-          case 'DEHYDRATION':
-            targetTemp = 37.8;
+          case 'MODE_8_LOW_SPO2':
+            targetSpo2 = Math.max(88, 98 - elapsedScenarioTime * 0.2);
+            targetHr = 95;
+            break;
+          case 'MODE_9_FATIGUE':
+            targetMotion = 'RUNNING';
+            targetHr = Math.min(160, 120 + elapsedScenarioTime * 0.5);
+            // Simulating slow recovery by keeping HR high
+            break;
+          case 'MODE_10_FALL':
+            if (elapsedScenarioTime < 2) {
+              targetMotion = 'WALKING';
+            } else if (elapsedScenarioTime < 3) {
+              targetMotion = 'FREEFALL';
+            } else {
+              targetMotion = 'FALL_DETECTED';
+              targetHr = 130;
+            }
+            break;
+          case 'MODE_11_FALL_NORMAL_VITALS':
+            if (elapsedScenarioTime < 2) targetMotion = 'STATIONARY';
+            else if (elapsedScenarioTime < 3) targetMotion = 'FREEFALL';
+            else targetMotion = 'FALL_DETECTED';
+            targetHr = 72; // Vitals normal, but fell
+            targetSpo2 = 98;
+            break;
+          case 'MODE_12_MICROCLIMATE':
+            targetTemp = 43; // Local temp high, regional will be simulated as normal
+            targetMotion = 'STATIONARY';
+            break;
+          case 'MODE_13_EXTREME_WEATHER':
+          case 'MODE_14_HEATWAVE':
+          case 'MODE_15_FLOOD':
+          case 'MODE_16_CYCLONE':
+            targetTemp = 32;
+            targetHumidity = 85;
+            targetMotion = 'WALKING';
             targetHr = 110;
             break;
-          case 'HEART_PALPITATION':
-            targetHr = 160 + Math.sin(now / 200) * 20; // Erratic
-            targetSpo2 = 94;
+          case 'MODE_17_OFFLINE':
+            isOffline = true;
+            targetHr = 85;
+            targetMotion = 'WALKING';
             break;
-          case 'HYPOTHERMIA':
-            targetTemp = 32.5;
-            targetHr = 50;
+          case 'MODE_18_STALE_API':
+            isApiStale = true;
+            targetHr = 75;
+            break;
+          case 'MODE_19_SENSOR_FAILURE':
+            newSensors.max30102.status = 'DISCONNECTED';
             targetMotion = 'STATIONARY';
             break;
+          case 'MODE_20_CASCADE':
+            targetTemp = Math.min(40, 25 + elapsedScenarioTime * 0.5);
+            targetHumidity = Math.min(85, 50 + elapsedScenarioTime * 1);
+            targetMotion = elapsedScenarioTime > 5 ? 'RUNNING' : 'WALKING';
+            targetHr = Math.min(170, 80 + elapsedScenarioTime * 2);
+            targetSpo2 = Math.max(90, 98 - elapsedScenarioTime * 0.2);
+            break;
+          case 'MODE_21_RECOVERY':
+            targetHr = Math.max(72, 160 - elapsedScenarioTime * 2);
+            targetSpo2 = Math.min(98, 90 + elapsedScenarioTime * 0.2);
+            targetTemp = Math.max(25, 38 - elapsedScenarioTime * 0.5);
+            targetMotion = 'RESTING';
+            break;
+          default:
+            targetHr = 72;
         }
 
-        // Apply temporally correlated smooth transitions
-        newSensors.max30102.hr = lerp(newSensors.max30102.hr, targetHr, tickDelta * 0.1);
-        newSensors.max30102.spo2 = lerp(newSensors.max30102.spo2, targetSpo2, tickDelta * 0.05);
+        // Apply temporally correlated smooth transitions (if sensor is online)
+        if (newSensors.max30102.status !== 'DISCONNECTED') {
+          newSensors.max30102.hr = lerp(newSensors.max30102.hr, targetHr, tickDelta * 0.1);
+          newSensors.max30102.spo2 = lerp(newSensors.max30102.spo2, targetSpo2, tickDelta * 0.05);
+        }
         newSensors.mlx90614.ambientTemp = lerp(newSensors.mlx90614.ambientTemp, targetTemp, tickDelta * 0.05);
         newSensors.bme688.gasResistance = lerp(newSensors.bme688.gasResistance, targetGas, tickDelta * 0.2);
-        
-        // Immediate state changes
+        newSensors.bme688.humidity = lerp(newSensors.bme688.humidity, targetHumidity, tickDelta * 0.05);
         newSensors.mpu6050.motion = targetMotion;
 
-        // Drain battery slowly
-        newSensors.battery = Math.max(0, store.sensors.battery - (tickDelta * 0.005));
-        newSensors.phoneBattery = Math.max(0, store.sensors.phoneBattery - (tickDelta * 0.002));
-        
-        if (store.scenario === 'NETWORK_FAILURE' || store.scenario === 'DISASTER' || store.scenario === 'ULTRA_SAVER') {
-          newSensors.battery = Math.min(newSensors.battery, 12); // simulate low battery during disaster
-          newSensors.phoneBattery = Math.min(newSensors.phoneBattery, 8);
-        } else if (newSensors.battery < 30 || newSensors.phoneBattery < 30) {
-          // Rapid recharge for simulation purposes so we don't get stuck in Ultra Saver
-          newSensors.battery = Math.min(100, newSensors.battery + (tickDelta * 20));
-          newSensors.phoneBattery = Math.min(100, newSensors.phoneBattery + (tickDelta * 20));
+        // Connectivity Simulation
+        if (isOffline) {
+          newSensors.connectivity = 'DISCONNECTED';
+          newDerived.disasterPredictionSource = 'Local Sensors Only (Network Offline)';
+        } else if (isApiStale) {
+          newSensors.connectivity = 'LIMITED';
+          newDerived.disasterPredictionSource = 'Local Sensors + Cached Weather Data';
+        } else {
+          newSensors.connectivity = 'CONNECTED';
+          newDerived.disasterPredictionSource = 'Live Weather Data + Local Sensor Crosscheck';
         }
 
+        // ========================================================
+        // AI CORRELATED INTELLIGENCE PIPELINE (Contextual Fusion)
+        // ========================================================
+        
+        let targetHealthReserve = 10000;
+        let risk: any = 'SAFE';
+        let recommendation = "Your vital signs and environmental conditions look great. Have a wonderful day!";
+        let predictiveHorizon = "Based on current trends, you are stable for the next 12 hours.";
+        
+        // Detailed Risks
+        let heatRisk = Math.min(100, Math.max(0, (newSensors.mlx90614.ambientTemp - 28) * 6));
+        let respRisk = Math.min(100, Math.max(0, ((100 - newSensors.bme688.gasResistance) / 2) + (95 - newSensors.max30102.spo2) * 10));
+        let cvRisk = Math.min(100, Math.max(0, (newSensors.max30102.hr - 90) * 1.5));
+        
+        // Multi-Risk Evaluation
+        if (newSensors.mpu6050.motion === 'FALL_DETECTED') {
+           newDerived.context = 'FALL DETECTED';
+           risk = 'EMERGENCY';
+           targetHealthReserve = 1000;
+           recommendation = 'A fall was detected. The system is preparing to alert your emergency contacts via the mesh network.';
+           predictiveHorizon = 'Immediate assistance required. Normal monitoring is suspended.';
+        } else if (storeState.scenario === 'MODE_12_MICROCLIMATE') {
+           newDerived.context = 'LOCALIZED HEAT TRAP';
+           risk = 'CAUTION';
+           targetHealthReserve = 7500;
+           heatRisk = 85;
+           recommendation = 'It is much hotter where you are standing compared to the rest of the city. Consider moving to a cooler room or improving ventilation.';
+           predictiveHorizon = 'If you stay here, heat stress will begin affecting your body in about 30 minutes.';
+        } else if (storeState.scenario === 'MODE_4_HEAT_EXPOSURE' || storeState.scenario === 'MODE_5_HEAT_EXERTION') {
+           newDerived.context = 'HEAT STRESS RISK';
+           risk = newSensors.mlx90614.ambientTemp > 38 ? 'HIGH RISK' : 'CAUTION';
+           targetHealthReserve = newSensors.mlx90614.ambientTemp > 38 ? 4000 : 6500;
+           recommendation = 'Your body is absorbing too much heat. Please stop any heavy activity, find shade, and drink water immediately.';
+           predictiveHorizon = `Warning: Heat exhaustion is highly likely within ${Math.max(5, 60 - Math.round(elapsedScenarioTime))} minutes if you don't cool down.`;
+        } else if (storeState.scenario === 'MODE_6_DEHYDRATION') {
+           newDerived.context = 'DEHYDRATION DETECTED';
+           risk = 'CAUTION';
+           targetHealthReserve = 6000;
+           recommendation = 'Your heart is working harder to pump blood due to prolonged heat exposure. You are likely dehydrated—please drink water.';
+           predictiveHorizon = 'Without water, your physical performance will drop and heat strain will worsen rapidly.';
+        } else if (storeState.scenario === 'MODE_8_LOW_SPO2' || storeState.scenario === 'MODE_7_RESPIRATORY_RISK') {
+           newDerived.context = 'RESPIRATORY STRAIN';
+           risk = newSensors.max30102.spo2 < 92 ? 'HIGH RISK' : 'CAUTION';
+           targetHealthReserve = newSensors.max30102.spo2 < 92 ? 3500 : 5500;
+           recommendation = 'Your blood oxygen levels are dropping. Stop any physical exertion and move to an area with fresh air if possible.';
+           predictiveHorizon = newSensors.max30102.spo2 < 92 ? 'Critical: Severe lack of oxygen (hypoxia) risk in 15 minutes.' : 'Blood oxygen is slowly declining. We are closely monitoring it.';
+        } else if (storeState.scenario === 'MODE_3_STATIONARY_HIGH_HR') {
+           newDerived.context = 'UNUSUAL HEART STRESS';
+           risk = 'HIGH RISK';
+           targetHealthReserve = 4500;
+           recommendation = 'Your heart rate is unusually high even though you are resting. Please sit down, take deep breaths, and contact a doctor if this continues.';
+           predictiveHorizon = 'Your body is under unexplained stress while at rest.';
+        } else if (storeState.scenario === 'MODE_20_CASCADE') {
+           newDerived.context = 'COMPOUNDING HEALTH RISKS';
+           risk = 'EMERGENCY';
+           targetHealthReserve = 2000;
+           recommendation = 'CRITICAL ALERT: Extreme heat, high heart rate, and dropping oxygen are hitting you all at once. Seek shelter and medical help immediately.';
+           predictiveHorizon = `Danger: Your body may physically collapse in approximately ${Math.max(2, 15 - Math.round(elapsedScenarioTime))} minutes.`;
+        } else if (storeState.scenario === 'MODE_14_HEATWAVE' || storeState.scenario === 'MODE_13_EXTREME_WEATHER') {
+           newDerived.context = 'SEVERE WEATHER ADVISORY';
+           risk = 'CAUTION';
+           targetHealthReserve = 7000;
+           recommendation = 'There is a severe weather alert for your region. Your body is handling it well right now, but please stay cautious and avoid going outside.';
+           predictiveHorizon = 'The harsh weather is slowly draining your body\'s natural resilience.';
+        } else if (storeState.scenario === 'MODE_2_EXERCISE') {
+           newDerived.context = 'HEALTHY EXERTION';
+           risk = 'SAFE';
+           targetHealthReserve = 8500;
+           recommendation = 'You are currently exercising! Your heart rate increase is perfectly normal and healthy for your fitness level.';
+           predictiveHorizon = 'Your body is adapting well to the workout. Safe to continue.';
+        }
+
+        // Apply health reserve smoothing
+        newDerived.healthReserve = lerp(newDerived.healthReserve, targetHealthReserve, tickDelta * 0.1);
+        
+        // Hazard and Disaster Logic
+        if (storeState.scenario === 'MODE_13_EXTREME_WEATHER' || storeState.scenario === 'MODE_14_HEATWAVE' || storeState.scenario === 'MODE_15_FLOOD' || storeState.scenario === 'MODE_16_CYCLONE' || storeState.scenario === 'MODE_7_RESPIRATORY_RISK' || storeState.scenario === 'MODE_20_CASCADE') {
+            newDerived.hazard = 'HIGH';
+            newDerived.hazardConfidence = Math.min(100, 50 + elapsedScenarioTime * 2);
+            if (storeState.scenario === 'MODE_7_RESPIRATORY_RISK') newDerived.hazardType = 'AIR_QUALITY_ALERT';
+            else if (storeState.scenario === 'MODE_15_FLOOD') newDerived.hazardType = 'FLOOD_WARNING';
+            else newDerived.hazardType = 'EXTREME_WEATHER';
+        } else {
+            newDerived.hazard = 'LOW';
+            newDerived.hazardConfidence = 0;
+            newDerived.hazardType = null;
+        }
+
+        // Recovery & Wellness Logic (Fatigue, Hydration, Sleep)
+        if (heatRisk > 70 || storeState.scenario === 'MODE_6_DEHYDRATION') {
+          newDerived.hydration = 'SEVERE_DEHYDRATION';
+          newDerived.fatigue = 'HIGH';
+        } else if (heatRisk > 40 || cvRisk > 60 || storeState.scenario === 'MODE_5_HEAT_EXERTION') {
+          newDerived.hydration = 'MILD_DEHYDRATION';
+          newDerived.fatigue = 'MODERATE';
+        } else {
+          newDerived.hydration = 'OPTIMAL';
+          newDerived.fatigue = 'LOW';
+        }
+
+        if (storeState.scenario === 'MODE_9_FATIGUE') {
+          newDerived.fatigue = 'HIGH';
+        }
+
+        if (newSensors.bme688.gasResistance < 40 || newSensors.mlx90614.ambientTemp > 35) {
+          newDerived.exposureDebt = Math.min(100, newDerived.exposureDebt + (tickDelta * 0.15));
+        } else {
+          newDerived.exposureDebt = Math.max(0, newDerived.exposureDebt - (tickDelta * 0.02));
+        }
+
+        if (storeState.scenario === 'MODE_1_NORMAL') {
+          newDerived.circadianSync = Math.min(100, newDerived.circadianSync + (tickDelta * 0.05));
+          newDerived.sleepQuality = Math.min(100, newDerived.sleepQuality + (tickDelta * 0.05));
+        } else if (now % 86400000 > 72000000) {
+          newDerived.circadianSync = Math.max(0, newDerived.circadianSync - (tickDelta * 0.01));
+        }
+
+        newDerived.biologicalAgeOffset = -1.2 + (newDerived.exposureDebt / 100) * 2;
+
         // Ultra Saver Mode Logic
-        newDerived.ultraSaverActive = (newSensors.battery < 15 && newSensors.phoneBattery < 15) || store.scenario === 'NETWORK_FAILURE' || store.scenario === 'ULTRA_SAVER';
+        newDerived.ultraSaverActive = (newSensors.battery < 15 && newSensors.phoneBattery < 15) || storeState.scenario === 'MODE_17_OFFLINE' || storeState.scenario === 'MODE_15_FLOOD' || storeState.scenario === 'MODE_16_CYCLONE';
+        newDerived.meshNetworkActive = newDerived.ultraSaverActive;
 
         if (newDerived.ultraSaverActive) {
           newSensors.connectivity = 'LORA_MESH';
@@ -119,130 +303,21 @@ export function useSimulationEngine() {
             bat: Math.round(newSensors.battery)
           };
         } else {
-          newSensors.connectivity = 'CONNECTED';
           newDerived.healthCapsule = null;
         }
 
-        // Edge AI Correlated Intelligence Pipeline
-        // Calculate Specific Risk Scores dynamically
-        newDerived.detailedRisks.cardiovascular = Math.min(100, Math.max(0, (newSensors.max30102.hr - 60) * 1.2));
-        newDerived.detailedRisks.heat = Math.min(100, Math.max(0, (newSensors.mlx90614.ambientTemp - 25) * 6));
-        newDerived.detailedRisks.respiratory = Math.min(100, Math.max(0, ((100 - newSensors.bme688.gasResistance) / 2) + (100 - newSensors.max30102.spo2) * 5));
+        // Update outputs
+        newDerived.risk = risk;
+        newDerived.recommendation = recommendation;
+        newDerived.predictiveHorizon = predictiveHorizon;
+        newDerived.detailedRisks.heat = heatRisk;
+        newDerived.detailedRisks.respiratory = respRisk;
+        newDerived.detailedRisks.cardiovascular = cvRisk;
 
-        // Hydration & Fatigue Heuristics
-        if (newDerived.detailedRisks.heat > 70) {
-          newDerived.hydration = 'SEVERE_DEHYDRATION';
-          newDerived.fatigue = 'HIGH';
-        } else if (newDerived.detailedRisks.heat > 40 || newDerived.detailedRisks.cardiovascular > 60) {
-          newDerived.hydration = 'MILD_DEHYDRATION';
-          newDerived.fatigue = 'MODERATE';
-        } else {
-          newDerived.hydration = 'OPTIMAL';
-          newDerived.fatigue = 'LOW';
-        }
-
-        // Cumulative Exposure Debt (Innovative feature)
-        if (newSensors.bme688.gasResistance < 40 || newSensors.mlx90614.ambientTemp > 35) {
-          newDerived.exposureDebt = Math.min(100, newDerived.exposureDebt + (tickDelta * 0.15));
-        } else {
-          newDerived.exposureDebt = Math.max(0, newDerived.exposureDebt - (tickDelta * 0.02)); // Slow recovery
-        }
-
-        // Circadian Sync
-        if (store.scenario === 'SLEEPING') {
-          newDerived.circadianSync = Math.min(100, newDerived.circadianSync + (tickDelta * 0.05));
-        } else if (now % 86400000 > 72000000) { // Simulating late night activity penalty
-          newDerived.circadianSync = Math.max(0, newDerived.circadianSync - (tickDelta * 0.01));
-        }
-
-        // Biological Age Offset
-        newDerived.biologicalAgeOffset = -1.2 + (newDerived.exposureDebt / 100) * 2; // Exposure ages you dynamically
-
-        // Mesh Network Active state simulation
-        newDerived.meshNetworkActive = newDerived.ultraSaverActive;
-
-        // Context Engine & Anomaly Detection with Predictive Horizons
-        if (newSensors.mpu6050.motion === 'FALL_DETECTED') {
-           newDerived.context = 'POSSIBLE FALL';
-           newDerived.risk = 'EMERGENCY';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 3000, tickDelta * 0.5);
-           newDerived.recommendation = 'Fall detected. Initiating Emergency Mesh Broadcast.';
-           newDerived.hazard = 'HIGH';
-           newDerived.hazardType = 'MEDICAL_EMERGENCY';
-           newDerived.predictiveHorizon = 'Critical condition. Immediate aid required.';
-        } else if (newSensors.bme688.gasResistance < 30) {
-           newDerived.context = 'RESPIRATORY HAZARD';
-           newDerived.hazard = 'HIGH';
-           newDerived.hazardConfidence = 96;
-           newDerived.hazardType = 'AIR_QUALITY_ALERT';
-           newDerived.risk = 'EMERGENCY';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 4500, tickDelta * 0.2);
-           newDerived.recommendation = 'Dangerous air quality. Wear an N95 mask and move to filtered air.';
-           newDerived.predictiveHorizon = `Severe respiratory distress in ${Math.max(1, Math.round(15 - newDerived.exposureDebt/10))} mins`;
-        } else if (newSensors.mlx90614.ambientTemp > 38 && newSensors.max30102.hr > 90) {
-           newDerived.context = 'HEAT WAVE EXPOSURE';
-           newDerived.hazard = 'HIGH';
-           newDerived.hazardType = 'EXTREME_HEAT';
-           newDerived.hazardConfidence = 89;
-           newDerived.risk = 'HIGH RISK';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 5500, tickDelta * 0.1);
-           newDerived.recommendation = 'Heat stress detected. Seek shade, rest, and rehydrate immediately.';
-           newDerived.predictiveHorizon = `Heat exhaustion imminent in ${Math.max(1, Math.round(45 - newDerived.exposureDebt/5))} mins`;
-        } else if (store.scenario === 'FLOOD_WARNING') {
-           newDerived.context = 'EVACUATION ACTIVE';
-           newDerived.hazard = 'HIGH';
-           newDerived.hazardType = 'FLOOD_WARNING';
-           newDerived.hazardConfidence = 99;
-           newDerived.risk = 'CAUTION';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 7000, tickDelta * 0.05);
-           newDerived.recommendation = 'Flood warning active in your zone. Follow micro-climate evacuation routes.';
-           newDerived.predictiveHorizon = 'Water levels peaking in 2.5 hours';
-        } else if (newDerived.ultraSaverActive) {
-           newDerived.context = 'ULTRA SAVER MODE';
-           newDerived.hazard = 'MEDIUM';
-           newDerived.hazardType = 'NETWORK_OUTAGE';
-           newDerived.risk = 'CAUTION';
-           newDerived.recommendation = 'Low Power. Prioritizing Vitals & LoRa Mesh Emergency Capsule.';
-           newDerived.predictiveHorizon = 'Battery will sustain LoRa ping for 72 hours.';
-        } else if (store.scenario === 'SLEEPING') {
-           newDerived.context = 'SLEEPING';
-           newDerived.activity = 'Low';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 9800, tickDelta * 0.1);
-           newDerived.sleepQuality = Math.min(100, newDerived.sleepQuality + tickDelta * 0.1);
-           newDerived.risk = 'SAFE';
-           newDerived.hazard = 'LOW';
-           newDerived.hazardType = null;
-           newDerived.recommendation = 'Restful sleep detected. Circadian rhythms syncing perfectly.';
-           newDerived.predictiveHorizon = 'Full physical recovery expected in 4 hours.';
-        } else if (newSensors.max30102.hr > 110 && newSensors.mpu6050.motion === 'RUNNING') {
-           newDerived.context = 'EXERCISING';
-           newDerived.activity = 'High';
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 8500, tickDelta * 0.05);
-           newDerived.risk = 'SAFE';
-           newDerived.hazard = 'LOW';
-           newDerived.hazardType = null;
-           newDerived.recommendation = 'Cardio exercise tracking active. Good heart rate response.';
-           newDerived.predictiveHorizon = 'Optimal metabolic load. Maintain pace for 20 more mins.';
-           if (!newDerived.adaptiveQuestion && Math.random() > 0.95) {
-             newDerived.adaptiveQuestion = "You're pushing harder than usual. Are you okay or feeling unusual fatigue?";
-           }
-        } else {
-           newDerived.context = 'NORMAL ACTIVITY';
-           newDerived.hazard = 'LOW';
-           newDerived.hazardType = null;
-           newDerived.healthReserve = lerp(newDerived.healthReserve, 9500, tickDelta * 0.05);
-           newDerived.risk = 'SAFE';
-           newDerived.recommendation = 'All baseline health parameters are optimal.';
-           newDerived.predictiveHorizon = 'Stable trajectory for the next 12 hours.';
-           if (newDerived.adaptiveQuestion && Math.random() > 0.95) {
-             newDerived.adaptiveQuestion = null;
-           }
-        }
-
-        store.updateState({
+        storeState.updateState({
           sensors: newSensors,
           derived: newDerived,
-          simTime: store.simTime + (delta * 1000 * speed)
+          simTime: storeState.simTime + (delta * 1000 * speed)
         });
       }
       
@@ -252,5 +327,5 @@ export function useSimulationEngine() {
 
     animationFrameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [store]);
+  }, []);
 }

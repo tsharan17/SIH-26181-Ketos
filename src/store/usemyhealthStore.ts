@@ -1,22 +1,31 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type GlobalMode = 'SIMULATION' | 'HARDWARE';
+// ... (I need to rewrite the create call)
 export type RiskState = 'SAFE' | 'CAUTION' | 'HIGH RISK' | 'EMERGENCY';
 export type Scenario = 
-  | 'NORMAL_DAY' 
-  | 'EXERCISE' 
-  | 'SLEEPING'
-  | 'HEAT_WAVE' 
-  | 'POOR_AIR_QUALITY' 
-  | 'FLOOD_WARNING'
-  | 'FALL' 
-  | 'DISASTER' 
-  | 'NETWORK_FAILURE' 
-  | 'ULTRA_SAVER'
-  | 'EMERGENCY'
-  | 'DEHYDRATION'
-  | 'HEART_PALPITATION'
-  | 'HYPOTHERMIA';
+  | 'MODE_1_NORMAL'
+  | 'MODE_2_EXERCISE'
+  | 'MODE_3_STATIONARY_HIGH_HR'
+  | 'MODE_4_HEAT_EXPOSURE'
+  | 'MODE_5_HEAT_EXERTION'
+  | 'MODE_6_DEHYDRATION'
+  | 'MODE_7_RESPIRATORY_RISK'
+  | 'MODE_8_LOW_SPO2'
+  | 'MODE_9_FATIGUE'
+  | 'MODE_10_FALL'
+  | 'MODE_11_FALL_NORMAL_VITALS'
+  | 'MODE_12_MICROCLIMATE'
+  | 'MODE_13_EXTREME_WEATHER'
+  | 'MODE_14_HEATWAVE'
+  | 'MODE_15_FLOOD'
+  | 'MODE_16_CYCLONE'
+  | 'MODE_17_OFFLINE'
+  | 'MODE_18_STALE_API'
+  | 'MODE_19_SENSOR_FAILURE'
+  | 'MODE_20_CASCADE'
+  | 'MODE_21_RECOVERY';
 
 export interface SensorData {
   max30102: { hr: number; spo2: number; status: string; confidence: number };
@@ -97,6 +106,7 @@ export interface myhealthState {
   simulationState: 'PLAYING' | 'PAUSED';
   simulationSpeed: number;
   scenario: Scenario;
+  scenarioStartTime: number;
   simTime: number;
   
   userProfile: UserProfile;
@@ -174,27 +184,42 @@ const initialDerived: DerivedData = {
   healthCapsule: null,
 };
 
-export const usemyhealthStore = create<myhealthState>((set) => ({
-  globalMode: 'SIMULATION',
-  language: 'EN',
-  hardwareStatus: { connected: false },
-  simulationState: 'PLAYING',
-  simulationSpeed: 1,
-  scenario: 'NORMAL_DAY',
-  simTime: Date.now(),
-  
-  userProfile: initialUserProfile,
-  sensors: initialSensors,
-  derived: initialDerived,
+export const usemyhealthStore = create<myhealthState>()(
+  persist(
+    (set) => ({
+      globalMode: 'SIMULATION',
+      language: 'EN',
+      hardwareStatus: { connected: false },
+      simulationState: 'PLAYING',
+      simulationSpeed: 1,
+      scenario: 'MODE_1_NORMAL',
+      scenarioStartTime: Date.now(),
+      simTime: Date.now(),
+      
+      userProfile: initialUserProfile,
+      sensors: initialSensors,
+      derived: initialDerived,
 
-  setLanguage: (lang) => set({ language: lang }),
-  setGlobalMode: (mode) => set({ globalMode: mode }),
-  setScenario: (scenario) => set({ scenario, simulationState: 'PLAYING' }),
-  toggleSimulation: () => set((state) => ({ simulationState: state.simulationState === 'PLAYING' ? 'PAUSED' : 'PLAYING' })),
-  setSimulationSpeed: (speed) => set({ simulationSpeed: speed }),
-  updateState: (partial) => set((state) => ({ ...state, ...partial })),
-  tick: () => set((state) => {
-    // We will hook this up to the robust engine
-    return { simTime: state.simTime + 1000 * state.simulationSpeed };
-  })
-}));
+      setLanguage: (lang) => set({ language: lang }),
+      setGlobalMode: (mode) => set({ globalMode: mode }),
+      setScenario: (scenario) => set({ scenario, simulationState: 'PLAYING', scenarioStartTime: Date.now() }),
+      toggleSimulation: () => set((state) => ({ simulationState: state.simulationState === 'PLAYING' ? 'PAUSED' : 'PLAYING' })),
+      setSimulationSpeed: (speed) => set({ simulationSpeed: speed }),
+      updateState: (partial) => set((state) => ({ ...state, ...partial })),
+      tick: () => set((state) => ({ simTime: state.simTime + 1000 * state.simulationSpeed }))
+    }),
+    {
+      name: 'praana-health-store', // unique name
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ 
+        globalMode: state.globalMode,
+        language: state.language,
+        scenario: state.scenario,
+        scenarioStartTime: state.scenarioStartTime,
+        simulationSpeed: state.simulationSpeed,
+        userProfile: state.userProfile,
+        // We do NOT persist sensors or derived data because it's actively computed
+      }),
+    }
+  )
+);

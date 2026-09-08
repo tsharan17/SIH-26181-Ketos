@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Bluetooth, Wifi, Activity, Cloud } from 'lucide-react';
 import { usemyhealthStore } from '@/store/usemyhealthStore';
 import { syncVitalsToFirestore } from '@/lib/firebaseSync';
+import { useTranslation } from '@/locales/translations';
 
 export function ESP32Connector() {
   const { globalMode, updateState, hardwareStatus } = usemyhealthStore();
+  const t = useTranslation();
   const [connecting, setConnecting] = useState(false);
   const [deviceIp, setDeviceIp] = useState('praana.local');
   const [cloudSynced, setCloudSynced] = useState(false);
@@ -101,14 +103,14 @@ export function ESP32Connector() {
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-slate-800">Hardware Mode Active</h3>
+            <h3 className="font-bold text-slate-800">{t.hardwareModeActive || 'Hardware Mode Active'}</h3>
             {cloudSynced && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full animate-pulse">
-                <Cloud className="w-3 h-3 text-emerald-600" /> Firebase Synced
+                <Cloud className="w-3 h-3 text-emerald-600" /> {t.firebaseSynced || 'Firebase Synced'}
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-500">Connect to your ESP32 device</p>
+          <p className="text-sm text-slate-500">{t.connectToESP32 || 'Connect to your ESP32 device'}</p>
         </div>
       </div>
       
@@ -119,7 +121,7 @@ export function ESP32Connector() {
           className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all"
         >
           <Bluetooth className="w-4 h-4" />
-          BLE Connect
+          {t.bleConnect || 'BLE Connect'}
         </button>
         
         <div className="flex items-center gap-2 flex-1 md:flex-none">
@@ -136,7 +138,7 @@ export function ESP32Connector() {
             className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all"
           >
             <Wifi className="w-4 h-4" />
-            Wi-Fi Connect
+            {t.wifiConnect || 'Wi-Fi Connect'}
           </button>
         </div>
       </div>
