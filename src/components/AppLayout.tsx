@@ -66,6 +66,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => {
+                import('firebase/auth').then(({ signOut }) => {
+                  import('@/lib/firebase').then(({ auth }) => signOut(auth));
+                });
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isUltra ? 'border-rose-900/50 text-rose-500 hover:bg-rose-900/20' : 'border-rose-200 text-rose-600 hover:bg-rose-50'}`}
+            >
+              Logout
+            </button>
+            <button
               onClick={() => usemyhealthStore.getState().setLanguage(language === 'EN' ? 'TE' : 'EN')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isUltra ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >

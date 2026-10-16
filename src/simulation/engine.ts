@@ -156,26 +156,61 @@ export function useSimulationEngine() {
         newSensors.bme688.humidity = lerp(newSensors.bme688.humidity, targetHumidity, tickDelta * 0.05);
         newSensors.mpu6050.motion = targetMotion;
 
+        // ECG Simulation
+        const currentHr = newSensors.max30102.hr;
+        const beatIntervalMs = 60000 / currentHr;
+        const phase = (now % beatIntervalMs) / beatIntervalMs; // 0 to 1
+
+        let ecgValue = 0;
+        let isArrhythmia = false;
+
+        // Simulate Arrhythmia in MODE_3 (Stationary High HR)
+        if (storeState.scenario === 'MODE_3_STATIONARY_HIGH_HR') {
+            isArrhythmia = true;
+            newDerived.arrhythmiaDetected = true;
+            // Simulated PVC or irregular beat (add noise or skip beats)
+            if (Math.random() > 0.8) {
+               ecgValue = (Math.random() - 0.5) * 0.5; // noisy baseline
+            } else {
+               // Standard beat but warped
+               if (phase < 0.1) ecgValue = 0.2 * Math.sin(phase * Math.PI * 10); // P wave
+               else if (phase < 0.15) ecgValue = -0.15; // Q
+               else if (phase < 0.2) ecgValue = 1.0; // R (peak)
+               else if (phase < 0.25) ecgValue = -0.25; // S
+               else if (phase > 0.4 && phase < 0.6) ecgValue = 0.3 * Math.sin((phase - 0.4) * Math.PI * 5); // T wave
+            }
+        } else {
+            newDerived.arrhythmiaDetected = false;
+            // Normal Sinus Rhythm PQRST simulation
+            if (phase < 0.1) ecgValue = 0.2 * Math.sin(phase * Math.PI * 10); // P wave
+            else if (phase < 0.15) ecgValue = -0.1; // Q
+            else if (phase < 0.2) ecgValue = 1.0; // R (peak)
+            else if (phase < 0.25) ecgValue = -0.2; // S
+            else if (phase > 0.4 && phase < 0.6) ecgValue = 0.3 * Math.sin((phase - 0.4) * Math.PI * 5); // T wave
+        }
+        newSensors.ad8232.ecg = ecgValue;
+
         // Connectivity Simulation
         if (isOffline) {
           newSensors.connectivity = 'DISCONNECTED';
-          newDerived.disasterPredictionSource = 'Local Sensors Only (Network Offline)';
+          newDerived.disasterPredictionSource = storeState.language === 'TE' ? 'స్థానిక సెన్సార్లు మాత్రమే (నెట్‌వర్క్ ఆఫ్‌లైన్)' : 'Local Sensors Only (Network Offline)';
         } else if (isApiStale) {
           newSensors.connectivity = 'LIMITED';
-          newDerived.disasterPredictionSource = 'Local Sensors + Cached Weather Data';
+          newDerived.disasterPredictionSource = storeState.language === 'TE' ? 'స్థానిక సెన్సార్లు + కాష్ చేసిన వాతావరణ డేటా' : 'Local Sensors + Cached Weather Data';
         } else {
           newSensors.connectivity = 'CONNECTED';
-          newDerived.disasterPredictionSource = 'Live Weather Data + Local Sensor Crosscheck';
+          newDerived.disasterPredictionSource = storeState.language === 'TE' ? 'ప్రత్యక్ష వాతావరణ డేటా + స్థానిక సెన్సార్ క్రాస్ చెక్' : 'Live Weather Data + Local Sensor Crosscheck';
         }
 
         // ========================================================
         // AI CORRELATED INTELLIGENCE PIPELINE (Contextual Fusion)
         // ========================================================
         
+        const isTe = storeState.language === 'TE';
         let targetHealthReserve = 10000;
         let risk: any = 'SAFE';
-        let recommendation = "Your vital signs and environmental conditions look great. Have a wonderful day!";
-        let predictiveHorizon = "Based on current trends, you are stable for the next 12 hours.";
+        let recommendation = isTe ? "మీ ప్రాణాధార సంకేతాలు మరియు పర్యావరణ పరిస్థితులు అద్భుతంగా ఉన్నాయి. మంచి రోజును గడపండి!" : "Your vital signs and environmental conditions look great. Have a wonderful day!";
+        let predictiveHorizon = isTe ? "ప్రస్తుత పోకడల ఆధారంగా, మీరు తదుపరి 12 గంటల పాటు సురక్షితంగా ఉన్నారు." : "Based on current trends, you are stable for the next 12 hours.";
         
         // Detailed Risks
         let heatRisk = Math.min(100, Math.max(0, (newSensors.mlx90614.ambientTemp - 28) * 6));
@@ -187,57 +222,61 @@ export function useSimulationEngine() {
            newDerived.context = 'FALL DETECTED';
            risk = 'EMERGENCY';
            targetHealthReserve = 1000;
-           recommendation = 'A fall was detected. The system is preparing to alert your emergency contacts via the mesh network.';
-           predictiveHorizon = 'Immediate assistance required. Normal monitoring is suspended.';
+           recommendation = isTe ? 'కిందపడినట్లు గుర్తించబడింది. మెష్ నెట్‌వర్క్ ద్వారా మీ అత్యవసర పరిచయాలను అప్రమత్తం చేయడానికి సిస్టమ్ సిద్ధమవుతోంది.' : 'A fall was detected. The system is preparing to alert your emergency contacts via the mesh network.';
+           predictiveHorizon = isTe ? 'తక్షణ సహాయం అవసరం. సాధారణ పర్యవేక్షణ నిలిపివేయబడింది.' : 'Immediate assistance required. Normal monitoring is suspended.';
         } else if (storeState.scenario === 'MODE_12_MICROCLIMATE') {
            newDerived.context = 'LOCALIZED HEAT TRAP';
            risk = 'CAUTION';
            targetHealthReserve = 7500;
            heatRisk = 85;
-           recommendation = 'It is much hotter where you are standing compared to the rest of the city. Consider moving to a cooler room or improving ventilation.';
-           predictiveHorizon = 'If you stay here, heat stress will begin affecting your body in about 30 minutes.';
+           recommendation = isTe ? 'మీరు నిలబడి ఉన్న చోట నగరం మిగతా భాగంతో పోలిస్తే చాలా వేడిగా ఉంది. చల్లని గదిలోకి వెళ్లడం లేదా గాలి ప్రసరణను మెరుగుపరచడం పరిగణించండి.' : 'It is much hotter where you are standing compared to the rest of the city. Consider moving to a cooler room or improving ventilation.';
+           predictiveHorizon = isTe ? 'మీరు ఇక్కడే ఉంటే, ఉష్ణ ఒత్తిడి సుమారు 30 నిమిషాల్లో మీ శరీరాన్ని ప్రభావితం చేయడం ప్రారంభిస్తుంది.' : 'If you stay here, heat stress will begin affecting your body in about 30 minutes.';
         } else if (storeState.scenario === 'MODE_4_HEAT_EXPOSURE' || storeState.scenario === 'MODE_5_HEAT_EXERTION') {
            newDerived.context = 'HEAT STRESS RISK';
            risk = newSensors.mlx90614.ambientTemp > 38 ? 'HIGH RISK' : 'CAUTION';
            targetHealthReserve = newSensors.mlx90614.ambientTemp > 38 ? 4000 : 6500;
-           recommendation = 'Your body is absorbing too much heat. Please stop any heavy activity, find shade, and drink water immediately.';
-           predictiveHorizon = `Warning: Heat exhaustion is highly likely within ${Math.max(5, 60 - Math.round(elapsedScenarioTime))} minutes if you don't cool down.`;
+           recommendation = isTe ? 'మీ శరీరం ఎక్కువ వేడిని గ్రహిస్తోంది. దయచేసి ఏదైనా భారీ పనిని ఆపివేయండి, నీడను కనుగొనండి మరియు వెంటనే నీరు త్రాగండి.' : 'Your body is absorbing too much heat. Please stop any heavy activity, find shade, and drink water immediately.';
+           let mins = Math.max(5, 60 - Math.round(elapsedScenarioTime));
+           predictiveHorizon = isTe ? `హెచ్చరిక: మీరు చల్లబడకపోతే ${mins} నిమిషాల్లో వేడి అలసట ఎక్కువగా సంభవించవచ్చు.` : `Warning: Heat exhaustion is highly likely within ${mins} minutes if you don't cool down.`;
         } else if (storeState.scenario === 'MODE_6_DEHYDRATION') {
            newDerived.context = 'DEHYDRATION DETECTED';
            risk = 'CAUTION';
            targetHealthReserve = 6000;
-           recommendation = 'Your heart is working harder to pump blood due to prolonged heat exposure. You are likely dehydrated—please drink water.';
-           predictiveHorizon = 'Without water, your physical performance will drop and heat strain will worsen rapidly.';
+           recommendation = isTe ? 'దీర్ఘకాలిక ఉష్ణ ప్రదర్శన కారణంగా రక్తాన్ని పంప్ చేయడానికి మీ గుండె కష్టపడుతోంది. మీరు డీహైడ్రేషన్‌కు గురయ్యే అవకాశం ఉంది—దయచేసి నీరు త్రాగండి.' : 'Your heart is working harder to pump blood due to prolonged heat exposure. You are likely dehydrated—please drink water.';
+           predictiveHorizon = isTe ? 'నీరు లేకపోతే, మీ శారీరక పనితీరు పడిపోతుంది మరియు ఉష్ణ ఒత్తిడి వేగంగా తీవ్రమవుతుంది.' : 'Without water, your physical performance will drop and heat strain will worsen rapidly.';
         } else if (storeState.scenario === 'MODE_8_LOW_SPO2' || storeState.scenario === 'MODE_7_RESPIRATORY_RISK') {
            newDerived.context = 'RESPIRATORY STRAIN';
            risk = newSensors.max30102.spo2 < 92 ? 'HIGH RISK' : 'CAUTION';
            targetHealthReserve = newSensors.max30102.spo2 < 92 ? 3500 : 5500;
-           recommendation = 'Your blood oxygen levels are dropping. Stop any physical exertion and move to an area with fresh air if possible.';
-           predictiveHorizon = newSensors.max30102.spo2 < 92 ? 'Critical: Severe lack of oxygen (hypoxia) risk in 15 minutes.' : 'Blood oxygen is slowly declining. We are closely monitoring it.';
+           recommendation = isTe ? 'మీ రక్తంలో ఆక్సిజన్ స్థాయిలు పడిపోతున్నాయి. శారీరక శ్రమను ఆపివేయండి మరియు వీలైతే స్వచ్ఛమైన గాలి ఉన్న ప్రాంతానికి వెళ్లండి.' : 'Your blood oxygen levels are dropping. Stop any physical exertion and move to an area with fresh air if possible.';
+           predictiveHorizon = newSensors.max30102.spo2 < 92 
+                ? (isTe ? 'క్లిష్టమైనది: 15 నిమిషాల్లో తీవ్రమైన ఆక్సిజన్ లోపం (హైపోక్సియా) ప్రమాదం.' : 'Critical: Severe lack of oxygen (hypoxia) risk in 15 minutes.') 
+                : (isTe ? 'రక్తంలో ఆక్సిజన్ నెమ్మదిగా తగ్గుతోంది. మేము దానిని నిశితంగా పరిశీలిస్తున్నాము.' : 'Blood oxygen is slowly declining. We are closely monitoring it.');
         } else if (storeState.scenario === 'MODE_3_STATIONARY_HIGH_HR') {
-           newDerived.context = 'UNUSUAL HEART STRESS';
-           risk = 'HIGH RISK';
-           targetHealthReserve = 4500;
-           recommendation = 'Your heart rate is unusually high even though you are resting. Please sit down, take deep breaths, and contact a doctor if this continues.';
-           predictiveHorizon = 'Your body is under unexplained stress while at rest.';
+           newDerived.context = 'ARRHYTHMIA / CARDIAC EVENT';
+           risk = 'EMERGENCY';
+           targetHealthReserve = 3000;
+           recommendation = isTe ? 'మీ గుండె స్పందన రేటు మరియు ECG అసాధారణంగా ఉన్నాయి (అరిథ్మియా కనుగొనబడింది). దయచేసి కూర్చోండి మరియు తక్షణమే వైద్యుడిని సంప్రదించండి.' : 'Your heart rate and ECG are highly irregular (Arrhythmia detected). Please sit down and contact a health professional immediately.';
+           predictiveHorizon = isTe ? 'తక్షణ వైద్య సహాయం సూచించబడింది.' : 'Immediate medical consultation advised.';
         } else if (storeState.scenario === 'MODE_20_CASCADE') {
            newDerived.context = 'COMPOUNDING HEALTH RISKS';
            risk = 'EMERGENCY';
            targetHealthReserve = 2000;
-           recommendation = 'CRITICAL ALERT: Extreme heat, high heart rate, and dropping oxygen are hitting you all at once. Seek shelter and medical help immediately.';
-           predictiveHorizon = `Danger: Your body may physically collapse in approximately ${Math.max(2, 15 - Math.round(elapsedScenarioTime))} minutes.`;
+           recommendation = isTe ? 'క్లిష్టమైన హెచ్చరిక: తీవ్రమైన వేడి, అధిక హృదయ స్పందన రేటు మరియు పడిపోతున్న ఆక్సిజన్ అన్నీ ఒకేసారి మిమ్మల్ని తాకుతున్నాయి. వెంటనే ఆశ్రయం మరియు వైద్య సహాయం పొందండి.' : 'CRITICAL ALERT: Extreme heat, high heart rate, and dropping oxygen are hitting you all at once. Seek shelter and medical help immediately.';
+           let mins = Math.max(2, 15 - Math.round(elapsedScenarioTime));
+           predictiveHorizon = isTe ? `ప్రమాదం: మీ శరీరం సుమారు ${mins} నిమిషాల్లో శారీరకంగా కుప్పకూలవచ్చు.` : `Danger: Your body may physically collapse in approximately ${mins} minutes.`;
         } else if (storeState.scenario === 'MODE_14_HEATWAVE' || storeState.scenario === 'MODE_13_EXTREME_WEATHER') {
            newDerived.context = 'SEVERE WEATHER ADVISORY';
            risk = 'CAUTION';
            targetHealthReserve = 7000;
-           recommendation = 'There is a severe weather alert for your region. Your body is handling it well right now, but please stay cautious and avoid going outside.';
-           predictiveHorizon = 'The harsh weather is slowly draining your body\'s natural resilience.';
+           recommendation = isTe ? 'మీ ప్రాంతానికి తీవ్రమైన వాతావరణ హెచ్చరిక ఉంది. మీ శరీరం ప్రస్తుతం దానిని బాగానే ఎదుర్కొంటోంది, కానీ దయచేసి జాగ్రత్తగా ఉండండి మరియు బయటికి వెళ్లడం నివారించండి.' : 'There is a severe weather alert for your region. Your body is handling it well right now, but please stay cautious and avoid going outside.';
+           predictiveHorizon = isTe ? 'కఠినమైన వాతావరణం మీ శరీరం యొక్క సహజ స్థితిస్థాపకతను నెమ్మదిగా హరిస్తోంది.' : 'The harsh weather is slowly draining your body\'s natural resilience.';
         } else if (storeState.scenario === 'MODE_2_EXERCISE') {
            newDerived.context = 'HEALTHY EXERTION';
            risk = 'SAFE';
            targetHealthReserve = 8500;
-           recommendation = 'You are currently exercising! Your heart rate increase is perfectly normal and healthy for your fitness level.';
-           predictiveHorizon = 'Your body is adapting well to the workout. Safe to continue.';
+           recommendation = isTe ? 'మీరు ప్రస్తుతం వ్యాయామం చేస్తున్నారు! మీ ఫిట్‌నెస్ స్థాయికి మీ హృదయ స్పందన రేటు పెరుగుదల పూర్తిగా సాధారణం మరియు ఆరోగ్యకరం.' : 'You are currently exercising! Your heart rate increase is perfectly normal and healthy for your fitness level.';
+           predictiveHorizon = isTe ? 'వర్కౌట్‌కు మీ శరీరం బాగా అలవాటు పడుతోంది. కొనసాగించడం సురక్షితం.' : 'Your body is adapting well to the workout. Safe to continue.';
         }
 
         // Apply health reserve smoothing

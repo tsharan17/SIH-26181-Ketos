@@ -92,6 +92,68 @@ def generate_hourly_trends(batch: HealthDataBatch):
         }
     }
 
+import time
+import torch
+from model import TimeSeriesTransformer
+
+# Initialize Transformer
+try:
+    ts_model = TimeSeriesTransformer(feature_size=6)
+    ts_model.eval()
+    print("Transformer-TS Model initialized.")
+except Exception as e:
+    print(f"Failed to load Transformer: {e}")
+
+@app.post("/api/ai/predict")
+async def ai_predict(data: dict):
+    """
+    Simulated Inference using the PyTorch Transformer-TS model.
+    Accepts historical sequence data to predict imminent risk.
+    """
+    # In a real scenario, data contains a sequence: shape (Sequence_Length, Batch_Size, Features)
+    # We mock a tensor of shape (10, 1, 6) here to simulate inference
+    mock_sequence = torch.randn(10, 1, 6) 
+    
+    with torch.no_grad():
+        prediction = ts_model(mock_sequence).item()
+        
+    risk_level = "SAFE"
+    if prediction > 0.8:
+        risk_level = "EMERGENCY"
+    elif prediction > 0.5:
+        risk_level = "HIGH RISK"
+        
+    return {
+        "success": True,
+        "transformer_prediction_value": prediction,
+        "inferred_risk": risk_level
+    }
+
+@app.post("/api/ai/adapt")
+async def ai_adapt(data: dict):
+    """
+    Fine-tunes the Transformer model on the user's recent data.
+    """
+    # Simulated fine-tuning step
+    time.sleep(1) # simulate training delay
+    return {
+        "success": True,
+        "message": "Model weights updated based on new user baseline."
+    }
+
+@app.post("/api/notify_professional")
+async def notify_professional(data: dict):
+    """
+    Emergency endpoint to alert a health professional.
+    """
+    print(f"🚨 [EMERGENCY ALERT SENT] 🚨")
+    print(f"To: Health Professional")
+    print(f"Patient Data: {data}")
+    return {
+        "success": True,
+        "message": "Health professional notified successfully."
+    }
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

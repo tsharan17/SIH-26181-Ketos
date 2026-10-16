@@ -16,15 +16,21 @@ export function ESP32Connector() {
   const connectBluetooth = async () => {
     try {
       setConnecting(true);
-      // Web Bluetooth API generic connection
       const nav = navigator as any;
       const device = await nav.bluetooth?.requestDevice({
         acceptAllDevices: true,
-        optionalServices: ['battery_service'] // Example generic service
+        optionalServices: ['0000180d-0000-1000-8000-00805f9b34fb', '00001809-0000-1000-8000-00805f9b34fb'] // HR and Temp services
       });
       const server = await device?.gatt?.connect();
       updateState({ hardwareStatus: { connected: true, deviceName: device.name || 'ESP32 BLE', batteryLevel: 100, signalStrength: -50 } });
-      alert(`Connected to ${device.name}`);
+      alert(`Connected to ${device.name}. Ready to read characteristics.`);
+      
+      // In a real scenario, you'd subscribe to notifications here.
+      // e.g. const hrService = await server.getPrimaryService('heart_rate');
+      // const hrChar = await hrService.getCharacteristic('heart_rate_measurement');
+      // hrChar.addEventListener('characteristicvaluechanged', handleHR);
+      // await hrChar.startNotifications();
+
     } catch (e: any) {
       alert(`Bluetooth connection failed: ${e.message}`);
     } finally {

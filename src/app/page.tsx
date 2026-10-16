@@ -18,6 +18,26 @@ export default function MyHealthDashboard() {
   const [showLogFeeling, setShowLogFeeling] = useState(false);
   const [feeling, setFeeling] = useState('CALM');
 
+  let calculatedPeriodDay = store.derived.wellness.periodDay || 14;
+  if (store.userProfile?.gender === 'FEMALE' && store.userProfile?.lastPeriodDate) {
+    const lastDate = new Date(store.userProfile.lastPeriodDate);
+    const today = new Date();
+    lastDate.setHours(0,0,0,0);
+    today.setHours(0,0,0,0);
+    const diffTime = today.getTime() - lastDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays >= 0) {
+      calculatedPeriodDay = (diffDays % 28) + 1;
+    }
+  }
+
+  let cyclePhaseKey = 'ovulationWindow';
+  if (calculatedPeriodDay >= 1 && calculatedPeriodDay <= 5) cyclePhaseKey = 'menstruation';
+  else if (calculatedPeriodDay >= 6 && calculatedPeriodDay <= 13) cyclePhaseKey = 'follicularPhase';
+  else if (calculatedPeriodDay >= 14 && calculatedPeriodDay <= 16) cyclePhaseKey = 'ovulationWindow';
+  else if (calculatedPeriodDay >= 17 && calculatedPeriodDay <= 28) cyclePhaseKey = 'lutealPhase';
+
+
   const getRiskGradient = (risk: string) => {
     if (store.derived.ultraSaverActive) return 'from-slate-800 to-black border-slate-600 shadow-slate-900/50';
     switch(risk) {
@@ -69,7 +89,16 @@ export default function MyHealthDashboard() {
             )}
           </div>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-center flex-wrap">
+          {(store.derived.risk === 'EMERGENCY' || store.derived.risk === 'HIGH RISK') && (
+            <button 
+              onClick={() => alert("Alert sent to Health Professional! GPS and Vitals attached.")}
+              className="px-5 py-3 rounded-2xl font-black tracking-widest shadow-lg transition-all flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white animate-pulse"
+            >
+              <AlertTriangle className="w-5 h-5" />
+              NOTIFY DOCTOR
+            </button>
+          )}
           <button 
             onClick={() => setShowCapsule(!showCapsule)}
             className={`px-5 py-3 rounded-2xl text-white font-black tracking-widest shadow-lg transition-all flex items-center gap-2 ${store.derived.meshNetworkActive ? 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20 animate-pulse' : 'bg-slate-800 hover:bg-slate-700 shadow-slate-900/50'}`}
@@ -159,27 +188,27 @@ export default function MyHealthDashboard() {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <div className="text-xs font-bold text-slate-400">CONTRIBUTING FACTORS</div>
+            <div className="text-xs font-bold text-slate-400">{store.language === 'TE' ? 'ప్రధాన కారణాలు' : 'CONTRIBUTING FACTORS'}</div>
             <ul className={`text-sm space-y-1 ${isUltra ? 'text-slate-300' : 'text-slate-700'}`}>
-              <li>• {store.sensors.mlx90614.ambientTemp.toFixed(1)}°C local temp, {Math.round(store.sensors.bme688.humidity)}% humidity</li>
-              <li>• Motion state: {store.sensors.mpu6050.motion}</li>
-              <li>• Heart Rate: {Math.round(store.sensors.max30102.hr)} BPM</li>
+              <li>• {store.sensors.mlx90614.ambientTemp.toFixed(1)}°C {store.language === 'TE' ? 'స్థానిక ఉష్ణోగ్రత' : 'local temp'}, {Math.round(store.sensors.bme688.humidity)}% {store.language === 'TE' ? 'తేమ' : 'humidity'}</li>
+              <li>• {store.language === 'TE' ? 'కదలిక స్థితి' : 'Motion state'}: {store.sensors.mpu6050.motion}</li>
+              <li>• {store.language === 'TE' ? 'గుండె స్పందన రేటు' : 'Heart Rate'}: {Math.round(store.sensors.max30102.hr)} BPM</li>
               <li>• SpO2: {Math.round(store.sensors.max30102.spo2)}%</li>
-              <li>• Data Source: {store.derived.disasterPredictionSource}</li>
+              <li>• {store.language === 'TE' ? 'డేటా మూలం' : 'Data Source'}: {store.derived.disasterPredictionSource}</li>
             </ul>
           </div>
           <div className="space-y-2">
-            <div className="text-xs font-bold text-slate-400">PREDICTIVE HORIZON</div>
+            <div className="text-xs font-bold text-slate-400 uppercase">{t.predictiveHorizon || (store.language === 'TE' ? 'అంచనా' : 'PREDICTIVE HORIZON')}</div>
             <div className={`text-sm font-medium ${isUltra ? 'text-white' : 'text-slate-900'}`}>{store.derived.predictiveHorizon}</div>
-            <div className="pt-2 text-xs font-bold text-slate-400">RISK TRAJECTORY</div>
+            <div className="pt-2 text-xs font-bold text-slate-400 uppercase">{store.language === 'TE' ? 'ప్రమాద పథం' : 'RISK TRAJECTORY'}</div>
             <div className={`text-sm font-medium ${isUltra ? 'text-white' : 'text-slate-900'}`}>
               {store.derived.risk !== 'SAFE' 
-                ? 'Your body\'s resilience is actively depleting. Please rest.' 
-                : 'Your health reserves are stable and replenishing.'}
+                ? (store.language === 'TE' ? 'మీ శరీరం యొక్క స్థితిస్థాపకత చురుకుగా క్షీణిస్తోంది. దయచేసి విశ్రాంతి తీసుకోండి.' : 'Your body\'s resilience is actively depleting. Please rest.') 
+                : (store.language === 'TE' ? 'మీ ఆరోగ్య నిల్వలు స్థిరంగా ఉన్నాయి మరియు భర్తీ చేయబడుతున్నాయి.' : 'Your health reserves are stable and replenishing.')}
             </div>
           </div>
           <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
-            <div className="text-xs font-bold text-slate-400 group-hover:text-blue-500 transition-colors">RECOMMENDATION</div>
+            <div className="text-xs font-bold text-slate-400 group-hover:text-blue-500 transition-colors uppercase">{store.language === 'TE' ? 'సిఫార్సు' : 'RECOMMENDATION'}</div>
             <div className="text-sm font-bold text-slate-800">{store.derived.recommendation}</div>
           </div>
         </div>
@@ -202,10 +231,10 @@ export default function MyHealthDashboard() {
                       <div className="absolute -right-4 -top-4 w-24 h-24 bg-rose-200/50 rounded-full blur-2xl group-hover:bg-rose-300/50 transition-colors"></div>
                       <div className="relative z-10">
                         <div className="text-xs font-bold text-slate-500 flex items-center gap-2"><Droplets className="w-4 h-4 text-rose-400"/> {t.cycleTracking}</div>
-                        <div className="mt-2 text-3xl font-black tracking-tight text-slate-800">{t.day} {store.derived.wellness.periodDay || 14}</div>
-                        <div className="text-sm font-medium text-rose-600 mt-1">{t.ovulationWindow}</div>
+                        <div className="mt-2 text-3xl font-black tracking-tight text-slate-800">{t.day} {calculatedPeriodDay}</div>
+                        <div className="text-sm font-medium text-rose-600 mt-1">{(t as any)[cyclePhaseKey]}</div>
                         <div className="mt-4 w-full bg-rose-200/50 rounded-full h-2 overflow-hidden">
-                          <div className="bg-rose-500 h-full rounded-full" style={{ width: `${((store.derived.wellness.periodDay || 14)/28)*100}%` }}></div>
+                          <div className="bg-rose-500 h-full rounded-full" style={{ width: `${(calculatedPeriodDay/28)*100}%` }}></div>
                         </div>
                       </div>
                     </div>

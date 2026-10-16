@@ -32,6 +32,7 @@ export interface SensorData {
   mlx90614: { bodyTemp: number; ambientTemp: number; status: string; confidence: number };
   bme688: { gasResistance: number; humidity: number; pressure: number; status: string; confidence: number };
   mpu6050: { motion: string; status: string; confidence: number };
+  ad8232: { ecg: number; status: string; confidence: number }; // Added ECG sensor
   battery: number;
   phoneBattery: number; // added phone battery
   connectivity: 'CONNECTED' | 'LIMITED' | 'DISCONNECTED' | 'LORA_MESH';
@@ -75,6 +76,7 @@ export interface DerivedData {
   ultraSaverActive: boolean;
   adaptiveQuestion: string | null;
   healthCapsule: any | null;
+  arrhythmiaDetected: boolean; // Added Arrhythmia flag
 }
 
 export interface UserProfile {
@@ -97,6 +99,7 @@ export interface UserProfile {
   environmentalRisks: string;
   emergencyContact: string;
   calibrated: boolean;
+  lastPeriodDate?: string;
 }
 
 export interface myhealthState {
@@ -127,6 +130,7 @@ const initialSensors: SensorData = {
   mlx90614: { bodyTemp: 36.5, ambientTemp: 24, status: 'CONNECTED', confidence: 98 },
   bme688: { gasResistance: 100, humidity: 45, pressure: 1013, status: 'CONNECTED', confidence: 99 },
   mpu6050: { motion: 'STATIONARY', status: 'CONNECTED', confidence: 96 },
+  ad8232: { ecg: 0, status: 'CONNECTED', confidence: 95 }, // initial ECG value
   battery: 85,
   phoneBattery: 78,
   connectivity: 'CONNECTED',
@@ -150,6 +154,7 @@ const initialUserProfile: UserProfile = {
   environmentalRisks: 'None',
   emergencyContact: '',
   calibrated: false,
+  lastPeriodDate: '',
 };
 
 const initialDerived: DerivedData = {
@@ -182,6 +187,7 @@ const initialDerived: DerivedData = {
   ultraSaverActive: false,
   adaptiveQuestion: null,
   healthCapsule: null,
+  arrhythmiaDetected: false, // initial Arrhythmia flag
 };
 
 export const usemyhealthStore = create<myhealthState>()(

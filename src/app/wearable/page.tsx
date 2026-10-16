@@ -69,6 +69,17 @@ export default function LiveWearablePage() {
               <div className="text-xs font-semibold text-slate-400 mb-1">Blood Oxygen (SpO2)</div>
               <div className="font-mono text-3xl font-black">{Math.round(store.sensors.max30102.spo2)} <span className="text-sm font-sans text-slate-500">%</span></div>
             </div>
+            <div className="pt-4 border-t border-slate-200/20">
+              <div className="text-xs font-semibold text-slate-400 mb-1">ECG / Arrhythmia (AD8232)</div>
+              <div className="flex items-center gap-4">
+                 <div className={`font-mono text-2xl font-black ${store.derived.arrhythmiaDetected ? 'text-rose-500 animate-pulse' : ''}`}>
+                    {store.sensors.ad8232.ecg.toFixed(2)}
+                 </div>
+                 {store.derived.arrhythmiaDetected && (
+                    <span className="text-[10px] font-bold px-2 py-1 rounded uppercase bg-rose-500/20 text-rose-500">IRREGULAR</span>
+                 )}
+              </div>
+            </div>
           </div>
         </div>
 

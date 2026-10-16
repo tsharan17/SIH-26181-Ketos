@@ -31,7 +31,8 @@ export function CalibrationModal() {
     timeOutdoors: '1–3 hours',
     environment: 'Mixed',
     environmentalRisks: 'None',
-    emergencyContact: ''
+    emergencyContact: '',
+    lastPeriodDate: ''
   });
 
   // Listen to Auth State
@@ -62,6 +63,7 @@ export function CalibrationModal() {
         setStep(1); // Show login
         setLoading(false);
         setAuthChecking(false);
+        store.updateState({ userProfile: { ...store.userProfile, calibrated: false } });
       }
     });
     return () => unsub();
@@ -92,9 +94,29 @@ export function CalibrationModal() {
       
       await setDoc(userDoc, profile);
       
+      let periodDay = 14;
+      if (formData.gender === 'FEMALE' && formData.lastPeriodDate) {
+        const lastDate = new Date(formData.lastPeriodDate);
+        const today = new Date();
+        lastDate.setHours(0,0,0,0);
+        today.setHours(0,0,0,0);
+        const diffTime = today.getTime() - lastDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays >= 0) {
+          periodDay = (diffDays % 28) + 1;
+        }
+      }
+
       // Update global store
       store.updateState({
-        userProfile: { ...formData, calibrated: true, uid: currentUser.uid, email: currentUser.email! }
+        userProfile: { ...formData, calibrated: true, uid: currentUser.uid, email: currentUser.email! },
+        derived: {
+          ...store.derived,
+          wellness: {
+            ...store.derived.wellness,
+            periodDay: periodDay
+          }
+        }
       });
     } catch(e) {
       console.error(e);
@@ -166,6 +188,12 @@ export function CalibrationModal() {
                     </select>
                   </div>
                 </div>
+                {formData.gender === 'FEMALE' && (
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase">Last Menstrual Period Date</label>
+                    <input type="date" value={formData.lastPeriodDate} onChange={e => handleChange('lastPeriodDate', e.target.value)} className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-slate-400 uppercase">Height (cm)</label>
